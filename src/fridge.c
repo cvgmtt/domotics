@@ -1,6 +1,6 @@
 #include "fridge.h"
 
-fridge createFridge(int _perc, int _temp, int _thermostat){
+int createFridge(int _perc, int _temp, int _thermostat){
     fridge fridge;
     fridge.state = 0;
     fridge.switches = 1;
@@ -8,6 +8,6 @@ fridge createFridge(int _perc, int _temp, int _thermostat){
     fridge.perc = _perc;
     fridge.temp = _temp;
     fridge.thermostat = _thermostat;
-    return fridge;
+    return 0;
 
 }

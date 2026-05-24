@@ -7,6 +7,6 @@ typedef struct bulb{
     int time;
 }bulb;
 
-bulb createBulb();
+int createBulb();
 
 #endif

@@ -11,7 +11,7 @@ typedef struct fridge{
 
 }fridge;
 
-fridge createFridge(int _perc, int _temp, int _thermostat);
+int createFridge(int _perc, int _temp, int _thermostat);
 
 
 #endif

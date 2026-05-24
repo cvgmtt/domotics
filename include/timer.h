@@ -10,7 +10,7 @@ typedef struct timer{
 
 }timer;
 
-timer createTimer();
+int createTimer();
 
 
 #endif

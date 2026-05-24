@@ -7,7 +7,7 @@ typedef struct hub{
     int registry[]; 
 }hub;
 
-hub createHub();
+int createHub();
 
 
 #endif
