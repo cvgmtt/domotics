@@ -1,5 +1,6 @@
 #ifndef __WINDOW_H__
 #define __WINDOW_H__
+#include "return_code.h"
 
 typedef struct window{
     int state;
@@ -8,6 +9,6 @@ typedef struct window{
 }window;
 
 window createWindow();
-int createProcess();
+int createProcessWindow();
 
 #endif

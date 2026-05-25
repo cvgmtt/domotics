@@ -1,5 +1,6 @@
 #ifndef __BULB_H__
 #define __BULB_H__
+#include "return_code.h"
 
 typedef struct bulb{
     int state;
@@ -8,5 +9,5 @@ typedef struct bulb{
 }bulb;
 
 bulb createBulb();
-int createProcess();
+int createProcessBulb();
 #endif

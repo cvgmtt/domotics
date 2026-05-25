@@ -1,11 +1,8 @@
 #include "controller.h"
 #include "string.h"
 #include "stdio.h"
-#include "return_code.h"
 #include <stdio.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <unistd.h>
+
 
 
 
@@ -23,13 +20,14 @@ int main(){
         terminal_input[strcspn(terminal_input, "\n")] = '\0';
         char *token = strtok(terminal_input, " ");
         printf("%c \n", token);
-        pid_t pid;
+        pid_t controller_pid = getpid();
+        char controller_pid_string[16];   
+        sprintf(controller_pid_string, "%d", controller_pid);        
         if(token != NULL){
             if(strcmp(token, "list") == 0){
-                pid = fork();
-                if(pid ==0){
-                   execlp("pstree", "pstree", "-p", pid_str, NULL);
-                }
+                if(list(controller_pid_string) == FAILURE){
+                    perror("error while forking");
+                };
                 printf("list devices \n");
             } else if (strcmp(token, "add") == 0){
                 token = strtok(NULL, " ");
@@ -114,4 +112,18 @@ int main(){
             printf("list, add <device>, del <id>, link <id1> to <id2>, switch <id> <label> <pos>, info <id>\n");
         }
     };
+}
+
+int list(char* controller_pid_string){
+    pid_t pid = fork();
+    if(pid<0){
+        return FAILURE;
+    }
+    if(pid ==0){
+        execlp("pstree", "pstree", "-p", controller_pid_string, NULL);
+        return SUCCESS;
+    } else{
+        wait(NULL);
+        return SUCCESS;
+    }
 }

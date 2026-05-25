@@ -1,5 +1,7 @@
 #ifndef __FRIDGE_H__
 #define __FRIDFE_H__
+#include "return_code.h"
+
 
 typedef struct fridge{
     int state;
@@ -12,6 +14,6 @@ typedef struct fridge{
 }fridge;
 
 fridge createFridge(int _perc, int _temp, int _thermostat);
-int createProcess();
+int createProcessFridge();
 
 #endif

@@ -8,9 +8,9 @@ bulb createBulb(){
     return bulb;
 }
 
-int createProcess(){
+int createProcessBulb(){
     bulb bulb = createBulb();
-    pid pid = fork();
+    pid_t pid = fork();
     if(pid < 0){
         return FAILURE;
     } else if(pid == 0){

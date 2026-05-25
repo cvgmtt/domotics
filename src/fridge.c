@@ -12,9 +12,9 @@ fridge createFridge(int _perc, int _temp, int _thermostat){
 
 }
 
-int createProcess(){
-    fridge fridge = createFridge();
-    pid pid = fork();
+int createProcessFridge(){
+    fridge fridge = createFridge(0, 0, 0);
+    pid_t pid = fork();
     if(pid < 0){
         return FAILURE;
     } else if(pid == 0){

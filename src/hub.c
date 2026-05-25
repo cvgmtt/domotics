@@ -8,9 +8,9 @@ hub createHub(){
     return hub;
 }
 
-int createProcess(){
+int createProcessHub(){
     hub hub = createHub();
-    pid pid = fork();
+    pid_t pid = fork();
     if(pid < 0){
         return FAILURE;
     } else if(pid == 0){

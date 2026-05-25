@@ -9,9 +9,9 @@ timer createTimer(){
     return timer;
 }
 
-int createProcess(){
+int createProcessTimer(){
     timer timer = createTimer();
-    pid pid = fork();
+    pid_t pid = fork();
     if(pid < 0){
         return FAILURE;
     } else if(pid == 0){

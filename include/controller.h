@@ -1,5 +1,6 @@
 #ifndef __CONTROLLER_H__
 #define __CONTROLLER_H__
+#include "return_code.h"
 
 
 typedef struct controller{
@@ -9,9 +10,7 @@ typedef struct controller{
     int process_id;
 } controller;
 
-
-
-
+int list(char* controller_pid_string);
 
 
 #endif

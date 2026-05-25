@@ -10,9 +10,9 @@ window createWindow(){
     return window;
 }
 
-int createProcess(){
+int createProcessWindow(){
     window window = createWindow();
-    pid pid = fork();
+    pid_t pid = fork();
     if(pid < 0){
         return FAILURE;
     } else if(pid == 0){

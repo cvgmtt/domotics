@@ -8,4 +8,9 @@
 #define LINK_FAILED 4
 #define DEVICE_TYPE_MISMATCH 5
 
+
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
 #endif

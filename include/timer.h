@@ -1,5 +1,6 @@
 #ifndef __TIMER_H__
 #define __TIMER_H__
+#include "return_code.h"
 
 typedef struct timer{
     int state;
@@ -11,6 +12,6 @@ typedef struct timer{
 }timer;
 
 timer createTimer();
-int createProcess();
+int createProcessTimer();
 
 #endif
