@@ -7,7 +7,7 @@ typedef struct hub{
     int registry[]; 
 }hub;
 
-int createHub();
-
+hub createHub();
+int createProcess();
 
 #endif

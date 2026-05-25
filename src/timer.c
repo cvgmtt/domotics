@@ -11,5 +11,12 @@ timer createTimer(){
 
 int createProcess(){
     timer timer = createTimer();
-    fork()
+    pid pid = fork();
+    if(pid < 0){
+        return FAILURE;
+    } else if(pid == 0){
+        while(1){
+            
+        }
+    }
 }

@@ -7,7 +7,7 @@ typedef struct window{
     int time_open;
 }window;
 
-int createWindow();
-
+window createWindow();
+int createProcess();
 
 #endif

@@ -11,3 +11,15 @@ fridge createFridge(int _perc, int _temp, int _thermostat){
     return fridge;
 
 }
+
+int createProcess(){
+    fridge fridge = createFridge();
+    pid pid = fork();
+    if(pid < 0){
+        return FAILURE;
+    } else if(pid == 0){
+        while(1){
+            
+        }
+    }
+}
