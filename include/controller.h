@@ -6,6 +6,7 @@ typedef struct controller{
     int state;
     int switches; 
     int num;
+    int process_id;
 } controller;
 
 

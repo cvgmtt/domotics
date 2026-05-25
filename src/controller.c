@@ -1,6 +1,13 @@
 #include "controller.h"
 #include "string.h"
 #include "stdio.h"
+#include "return_code.h"
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
+
 
 int main(){
     //initialization of controller
@@ -16,8 +23,13 @@ int main(){
         terminal_input[strcspn(terminal_input, "\n")] = '\0';
         char *token = strtok(terminal_input, " ");
         printf("%c \n", token);
+        pid_t pid;
         if(token != NULL){
             if(strcmp(token, "list") == 0){
+                pid = fork();
+                if(pid ==0){
+                   execlp("pstree", "pstree", "-p", pid_str, NULL);
+                }
                 printf("list devices \n");
             } else if (strcmp(token, "add") == 0){
                 token = strtok(NULL, " ");

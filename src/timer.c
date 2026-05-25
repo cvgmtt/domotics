@@ -8,3 +8,8 @@ timer createTimer(){
     timer.end_minutes = 0;
     return timer;
 }
+
+int createProcess(){
+    timer timer = createTimer();
+    fork()
+}
