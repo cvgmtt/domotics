@@ -9,12 +9,24 @@ timer createTimer(){
     return timer;
 }
 
-int createProcessTimer(){
+int createProcessTimer(int num){
     timer timer = createTimer();
     pid_t pid = fork();
     if(pid < 0){
         return FAILURE;
-    } else if(pid == 0){
+    } 
+    if(pid == 0){
+        FILE* fp = fopen(".registry.txt", "a");
+        if(fp == NULL){
+            printf("could not open file");
+            return FAILURE;
+        }
+        timer.id = num;
+        pid_t child_pid = getpid();
+        int child_pid_int = (int) child_pid;
+        fprintf(fp,"%d, %d, Timer, \n", timer.id, child_pid_int);
+        fclose(fp);
+    
         while(1){
             
         }

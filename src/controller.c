@@ -12,6 +12,14 @@ int main(){
     controller.state = 1; //means on
     controller.switches = 1; //means on
     controller.num = 0;
+    
+    FILE* fp = fopen(".registry.txt", "w");
+    if (fp == NULL) {
+        printf("The file couldn't be opened.");
+        return FAILURE;
+    }
+    fclose(fp);
+    
 
     while(1){
         char terminal_input[30];
@@ -26,23 +34,42 @@ int main(){
         if(token != NULL){
             if(strcmp(token, "list") == 0){
                 if(list(controller_pid_string) == FAILURE){
-                    perror("error while forking");
+                    perror("could not open file");
                 };
-                printf("list devices \n");
             } else if (strcmp(token, "add") == 0){
                 token = strtok(NULL, " ");
-                printf("got here \n");
                 if(token != NULL){
                     if(strcmp(token, "hub") == 0){
-                        printf("spawn hub \n");
+                        if(createProcessHub(controller.num) == FAILURE){
+                            perror("failed to create hub device");
+                        } else{
+                            controller.num++;
+                        }
+                        
                     } else if(strcmp(token, "timer") == 0)  {
-                        printf("spawns timer \n");
+                        if(createProcessTimer(controller.num) == FAILURE){
+                            perror("failed to create timer device");
+                        } else{
+                            controller.num++;
+                        }
                     } else if(strcmp(token, "bulb") == 0){
-                        printf("spawns bulb\n");
+                        if(createProcessBulb(controller.num) == FAILURE){
+                            perror("failed to create bulb device");
+                        } else{
+                            controller.num++;
+                        }
                     } else if(strcmp(token, "window") == 0){
-                        printf("spawns window\n");
+                        if(createProcessWindow(controller.num) == FAILURE){
+                            perror("failed to create window device");
+                        } else{
+                            controller.num++;
+                        }
                     } else if(strcmp(token, "fridge") == 0){
-                        printf("spawns fridge\n");
+                        if(createProcessFridge(controller.num) == FAILURE){
+                            perror("failed to create fridge device");
+                        } else{
+                            controller.num++;
+                        }
                     }
                 } else{
                     printf("wrong input. add requires just one of these arguments: hub, timer, bulb, window, fridge\n");
@@ -115,15 +142,20 @@ int main(){
 }
 
 int list(char* controller_pid_string){
-    pid_t pid = fork();
-    if(pid<0){
+    FILE* fp = fopen(".registry.txt", "r");
+    if(fp == NULL){
         return FAILURE;
     }
-    if(pid ==0){
-        execlp("pstree", "pstree", "-p", controller_pid_string, NULL);
-        return SUCCESS;
-    } else{
-        wait(NULL);
-        return SUCCESS;
+    char data[50];
+    while (fgets(data, 50, fp) != NULL){
+
+        int id, pid;
+        char device[50];
+        
+        sscanf(data, "%d , %d , %s", &id, &pid, device); 
+        printf("Id: %d Device: %s\n", id, device);
+
     }
+    fclose(fp);
+    return SUCCESS;
 }

@@ -6,8 +6,9 @@ typedef struct bulb{
     int state;
     int switches;
     int time;
+    int id;
 }bulb;
 
 bulb createBulb();
-int createProcessBulb();
+int createProcessBulb(int num);
 #endif

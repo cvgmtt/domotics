@@ -6,10 +6,11 @@
 typedef struct hub{
     int state;
     int switches;
+    int id;
     int registry[]; 
 }hub;
 
 hub createHub();
-int createProcessHub();
+int createProcessHub(int num);
 
 #endif

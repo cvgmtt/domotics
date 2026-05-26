@@ -6,9 +6,10 @@ typedef struct window{
     int state;
     int switches;
     int time_open;
+    int id;
 }window;
 
 window createWindow();
-int createProcessWindow();
+int createProcessWindow(int num);
 
 #endif

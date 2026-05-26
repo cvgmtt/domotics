@@ -7,11 +7,11 @@ typedef struct timer{
     int switches;
     int begin_minutes;
     int end_minutes;
-
+    int id;
 
 }timer;
 
 timer createTimer();
-int createProcessTimer();
+int createProcessTimer(int num);
 
 #endif
