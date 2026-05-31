@@ -5,9 +5,13 @@
 typedef struct window{
     int state;
     int switches;
+    registry registry;
+}window;
+
+typedef struct registry{
     int time_open;
     int id;
-}window;
+}registry;
 
 window createWindow();
 int createProcessWindow(int num);

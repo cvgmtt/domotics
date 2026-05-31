@@ -5,9 +5,13 @@
 typedef struct bulb{
     int state;
     int switches;
+    registry registry;
+}bulb;
+
+typedef struct registry{
     int time;
     int id;
-}bulb;
+}registry;
 
 bulb createBulb();
 int createProcessBulb(int num);

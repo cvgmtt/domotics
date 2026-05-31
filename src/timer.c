@@ -4,8 +4,8 @@ timer createTimer(){
     timer timer;
     timer.state = 1;
     timer.switches = 1;
-    timer.begin_minutes = 0;
-    timer.end_minutes = 0;
+    timer.registry.begin_minutes = 0;
+    timer.registry.end_minutes = 0;
     return timer;
 }
 
@@ -21,10 +21,10 @@ int createProcessTimer(int num){
             printf("could not open file");
             return FAILURE;
         }
-        timer.id = num;
+        timer.registry.id = num + 1;
         pid_t child_pid = getpid();
         int child_pid_int = (int) child_pid;
-        fprintf(fp,"%d, %d, Timer, \n", timer.id, child_pid_int);
+        fprintf(fp,"%d, %d, Timer, \n", timer.registry.id, child_pid_int);
         fclose(fp);
     
         while(1){

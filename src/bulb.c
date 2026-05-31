@@ -21,7 +21,7 @@ int createProcessBulb(int num){
             printf("could not open file");
             return FAILURE;
         }
-        bulb.id = num;
+        bulb.id = num + 1;
         pid_t child_pid = getpid();
         int child_pid_int = (int) child_pid;
         fprintf(fp,"%d, %d, Bulb, \n", bulb.id, child_pid_int);

@@ -10,10 +10,13 @@
 typedef struct controller{
     int state;
     int switches; 
-    int num;
-    int process_id;
-    int id;
+    registry registry;
 } controller;
+
+typedef struct registry{
+    int num;
+    int id;
+}registry;
 
 int list(char* controller_pid_string);
 

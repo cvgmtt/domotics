@@ -6,7 +6,7 @@ window createWindow(){
     window window;
     window.state = 0;
     window.switches = 1;
-    window.time_open = 0;
+    window.registry.time_open = 0;
     return window;
 }
 
@@ -23,10 +23,10 @@ int createProcessWindow(int num){
             printf("could not open file");
             return FAILURE;
         }
-        window.id = num;
+        window.registry.id = num + 1;
         pid_t child_pid = getpid();
         int child_pid_int = (int) child_pid;
-        fprintf(fp,"%d, %d, Window, \n", window.id, child_pid_int);
+        fprintf(fp,"%d, %d, Window, \n", window.registry.id, child_pid_int);
         fclose(fp);
 
         while(1){
