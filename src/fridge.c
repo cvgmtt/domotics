@@ -4,10 +4,10 @@ fridge createFridge(int _perc, int _temp, int _thermostat){
     fridge fridge;
     fridge.state = 0;
     fridge.switches = 1;
-    fridge.time_open = 0;
-    fridge.perc = _perc;
-    fridge.temp = _temp;
-    fridge.thermostat = _thermostat;
+    fridge.registry.time_open = 0;
+    fridge.registry.perc = _perc;
+    fridge.registry.temp = _temp;
+    fridge.registry.thermostat = _thermostat;
     return fridge;
 
 }
@@ -24,10 +24,10 @@ int createProcessFridge(int num){
             printf("could not open file");
             return FAILURE;
         }
-        fridge.id = num;
+        fridge.registry.id = num + 1;
         pid_t child_pid = getpid();
         int child_pid_int = (int) child_pid;
-        fprintf(fp,"%d, %d, Fridge, \n", fridge.id, child_pid_int);
+        fprintf(fp,"%d, %d, Fridge, \n", fridge.registry.id, child_pid_int);
         fclose(fp);
     
         while(1){

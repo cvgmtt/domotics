@@ -5,11 +5,14 @@
 typedef struct timer{
     int state;
     int switches;
+    registry registry;
+}timer;
+
+typedef struct registry{
     int begin_minutes;
     int end_minutes;
     int id;
-
-}timer;
+}registry;
 
 timer createTimer();
 int createProcessTimer(int num);

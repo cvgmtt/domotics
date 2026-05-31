@@ -11,7 +11,8 @@ int main(){
     controller controller;
     controller.state = 1; //means on
     controller.switches = 1; //means on
-    controller.num = 0;
+    controller.registry.num = 0;
+    controller.registry.id = 0;
     
     FILE* fp = fopen(".registry.txt", "w");
     if (fp == NULL) {
@@ -40,35 +41,35 @@ int main(){
                 token = strtok(NULL, " ");
                 if(token != NULL){
                     if(strcmp(token, "hub") == 0){
-                        if(createProcessHub(controller.num) == FAILURE){
+                        if(createProcessHub(controller.registry.num) == FAILURE){
                             perror("failed to create hub device");
                         } else{
-                            controller.num++;
+                            controller.registry.num++;
                         }
                         
                     } else if(strcmp(token, "timer") == 0)  {
-                        if(createProcessTimer(controller.num) == FAILURE){
+                        if(createProcessTimer(controller.registry.num) == FAILURE){
                             perror("failed to create timer device");
                         } else{
-                            controller.num++;
+                            controller.registry.num++;
                         }
                     } else if(strcmp(token, "bulb") == 0){
-                        if(createProcessBulb(controller.num) == FAILURE){
+                        if(createProcessBulb(controller.registry.num) == FAILURE){
                             perror("failed to create bulb device");
                         } else{
-                            controller.num++;
+                            controller.registry.num++;
                         }
                     } else if(strcmp(token, "window") == 0){
-                        if(createProcessWindow(controller.num) == FAILURE){
+                        if(createProcessWindow(controller.registry.num) == FAILURE){
                             perror("failed to create window device");
                         } else{
-                            controller.num++;
+                            controller.registry.num++;
                         }
                     } else if(strcmp(token, "fridge") == 0){
-                        if(createProcessFridge(controller.num) == FAILURE){
+                        if(createProcessFridge(controller.registry.num) == FAILURE){
                             perror("failed to create fridge device");
                         } else{
-                            controller.num++;
+                            controller.registry.num++;
                         }
                     }
                 } else{
@@ -80,7 +81,7 @@ int main(){
                 if(token != NULL){
                     //iterates through ids till you find it
                     //then delete it
-                } else{
+                } else{             
                     printf("wrong input. del requires a valid id\n");
                 }
             } else if(strcmp(token, "link") == 0){
