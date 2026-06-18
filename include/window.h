@@ -1,17 +1,20 @@
 #ifndef __WINDOW_H__
 #define __WINDOW_H__
 #include "return_code.h"
+#include "device.h"
+
+typedef struct registry_window{
+    int time_open;
+    int id;
+}registry_window;
 
 typedef struct window{
     int state;
     int switches;
-    registry registry;
+    registry_window registry;
 }window;
 
-typedef struct registry{
-    int time_open;
-    int id;
-}registry;
+
 
 window createWindow();
 int createProcessWindow(int num);

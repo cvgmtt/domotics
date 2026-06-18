@@ -1,0 +1,18 @@
+#ifndef __DEVICE_H__
+#define __DEVICE_H__
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <signal.h>
+#include <return_code.h>
+#include <stdlib.h>
+#include <string.h>
+
+FILE* initDevice(int fd[]);
+
+int checkSuccess(int fd[], pid_t pid);
+
+
+
+#endif

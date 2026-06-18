@@ -1,17 +1,20 @@
 #ifndef __BULB_H__
 #define __BULB_H__
 #include "return_code.h"
+#include <device.h>
+
+typedef struct registry_bulb{
+    int time;
+    int id;
+}registry_bulb;
 
 typedef struct bulb{
     int state;
     int switches;
-    registry registry;
+    registry_bulb registry;
 }bulb;
 
-typedef struct registry{
-    int time;
-    int id;
-}registry;
+
 
 bulb createBulb();
 int createProcessBulb(int num);

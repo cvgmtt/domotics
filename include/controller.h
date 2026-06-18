@@ -7,16 +7,20 @@
 #include "timer.h"
 #include "bulb.h"
 
+typedef struct registry{
+    int num;
+    int id;
+}registry;
+
 typedef struct controller{
     int state;
     int switches; 
     registry registry;
 } controller;
 
-typedef struct registry{
-    int num;
-    int id;
-}registry;
+
+
+
 
 int list(char* controller_pid_string);
 

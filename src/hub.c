@@ -10,25 +10,28 @@ hub createHub(){
 
 int createProcessHub(int num){
     hub hub = createHub();
+    int fd[2]; // fd[0] is the read end, fd[1] is the write end
+    if (pipe(fd) == -1) { 
+        perror("could not open pipe"); return FAILURE; 
+    }
     pid_t pid = fork();
+    
     if(pid < 0){
         return FAILURE;
     } 
     if(pid == 0){
-        FILE* fp = fopen(".registry.txt", "a");
-        if(fp == NULL){
-            printf("could not open file");
-            return FAILURE;
-        }
-        hub.registry.id = num + 1;
+        FILE* fp = initDevice(fd);
+        hub.registry.id = num +1;
         pid_t child_pid = getpid();
         int child_pid_int = (int) child_pid;
         fprintf(fp,"%d, %d, Hub, \n", hub.registry.id, child_pid_int);
         fclose(fp);
-    
+        
     
         while(1){
             
         }
+    } else{
+        return checkSuccess(fd, pid);
     }
 }
