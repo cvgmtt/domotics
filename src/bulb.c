@@ -20,13 +20,22 @@ int createProcessBulb(int num){
     };
     
     if(pid == 0){
-        FILE* fp = initDevice(fd);
         bulb.registry.id = num + 1;
+        int success = FAILURE;
+        char pipename[20];
+        do{
+            success = createPipe(bulb.registry.id, pipename, sizeof(pipename));
+        } while (success == FAILURE);
+
+        int pipe = open(pipename, O_RDONLY | O_NONBLOCK);
+        
+        FILE* fp = initDevice(fd, pipe);
         pid_t child_pid = getpid();
         int child_pid_int = (int) child_pid;
-        fprintf(fp,"%d, %d, Bulb, \n", bulb.registry.id, child_pid_int);
+        fprintf(fp,"%d, %d, Bulb, 0 \n", bulb.registry.id, child_pid_int);
         fclose(fp);
-  
+
+        
 
         while(1){
             

@@ -6,6 +6,7 @@
 typedef struct registry_window{
     int time_open;
     int id;
+    int parent_id;
 }registry_window;
 
 typedef struct window{

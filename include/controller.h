@@ -24,5 +24,7 @@ typedef struct controller{
 
 int list(char* controller_pid_string);
 
+int link_command(char* child_id, char* parent_id);
+
 
 #endif

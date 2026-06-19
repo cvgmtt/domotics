@@ -22,15 +22,23 @@ int createProcessWindow(int num){
     } 
     
     if(pid == 0){
-        FILE* fp = initDevice(fd);
         window.registry.id = num + 1;
+        int success = FAILURE;
+        char pipename[20];
+        do{
+            success = createPipe(window.registry.id, pipename, sizeof(pipename));
+        } while (success == FAILURE);
+
+        int pipe = open(pipename, O_RDONLY | O_NONBLOCK);
+        FILE* fp = initDevice(fd, pipe);
+
         pid_t child_pid = getpid();
         int child_pid_int = (int) child_pid;
-        fprintf(fp,"%d, %d, Window, \n", window.registry.id, child_pid_int);
+        fprintf(fp,"%d, %d, Window, 0 %d\n", window.registry.id, child_pid_int, 0);
         fclose(fp);
 
         while(1){
-            
+
         }
     } else{
         return checkSuccess(fd, pid);

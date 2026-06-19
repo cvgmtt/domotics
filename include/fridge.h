@@ -9,6 +9,7 @@ typedef struct registry_fridge{
     int temp;
     int thermostat; //target temperature
     int id;
+    int parent_id;
 }registry_fridge;
 
 typedef struct fridge{

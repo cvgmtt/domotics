@@ -20,16 +20,24 @@ int createProcessHub(int num){
         return FAILURE;
     } 
     if(pid == 0){
-        FILE* fp = initDevice(fd);
         hub.registry.id = num +1;
+        char pipename[20];
+        int success = FAILURE;        
+        do{
+            success = createPipe(hub.registry.id, pipename, sizeof(pipename));
+        } while (success == FAILURE);
+
+        int pipe = open(pipename, O_RDONLY | O_NONBLOCK);
+  
+
+        FILE* fp = initDevice(fd, pipe);
         pid_t child_pid = getpid();
         int child_pid_int = (int) child_pid;
-        fprintf(fp,"%d, %d, Hub, \n", hub.registry.id, child_pid_int);
+        fprintf(fp,"%d, %d, Hub, 0 %d \n", hub.registry.id, child_pid_int, 0);
         fclose(fp);
-        
-    
+ 
         while(1){
-            
+
         }
     } else{
         return checkSuccess(fd, pid);

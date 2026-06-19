@@ -7,6 +7,8 @@ typedef struct registry_timer{
     int begin_minutes;
     int end_minutes;
     int id;
+    int parent_id;
+    int child_id;
 }registry_timer;
 
 typedef struct timer{

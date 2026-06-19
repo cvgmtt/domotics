@@ -6,6 +6,7 @@
 typedef struct registry_bulb{
     int time;
     int id;
+    int parent_id;
 }registry_bulb;
 
 typedef struct bulb{
