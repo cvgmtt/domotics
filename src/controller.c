@@ -94,7 +94,7 @@ int main(){
                         if(link_command(child_id, parent_id) == SUCCESS){
                             printf("Linked %s with %s \n", child_id, parent_id);
                         }else{
-                            printf("couldn't link these two");
+                            printf("couldn't link these two \n");
                         };
                     } else{
                     printf("wrong input. linking requires two valid ids\n");
@@ -172,7 +172,7 @@ int link_command(char* child_id, char* parent_id){
     snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%s", child_id);
     snprintf(pipename_parent, sizeof(pipename_parent), "/tmp/domotics_%s", parent_id);
     int child_pipe = open(pipename_child, O_WRONLY | O_NONBLOCK);
-    int parent_pipe = open(pipename_child, O_WRONLY | O_NONBLOCK);
+    int parent_pipe = open(pipename_parent, O_WRONLY | O_NONBLOCK);
     
 
     char buffer[15];
@@ -201,7 +201,10 @@ int link_command(char* child_id, char* parent_id){
             }
 
             if (strcmp(current_id, child_id) == 0) {
-                printf("Trovato figlio nel registry, aggiorno il suo Parent ID...\n");
+                if(strcmp(type_str, " Hub") == 0 || strcmp(type_str, " Timer") == 0){
+                    perror("first id is not an interaction device \n");
+                    return FAILURE;
+                }
                 snprintf(buffer, sizeof(buffer), "new parent %s", parent_id);
                 write(child_pipe, buffer, sizeof(buffer));
                 close(child_pipe);
@@ -209,13 +212,23 @@ int link_command(char* child_id, char* parent_id){
                 fprintf(temp, "%s, %s, %s, %s, %s \n", current_id, pid_str, type_str, parent_id, children_str);
             } 
             else if (strcmp(current_id, parent_id) == 0) {
-                printf("Trovato padre nel registry, aggiungo il figlio...\n");
+                if(strcmp(type_str, " Hub") == 0 || strcmp(type_str, " Timer") == 0){
+                    snprintf(buffer, sizeof(buffer), "new child %s", child_id);
+                    write(parent_pipe, buffer, sizeof(buffer));
+                    close(parent_pipe);
 
-                snprintf(buffer, sizeof(buffer), "new child %s", child_id);
-                write(parent_pipe, buffer, sizeof(buffer));
-                close(parent_pipe);
-
-                fprintf(temp, "%s, %s, %s, 0, %s \n", current_id, pid_str, type_str, child_id);
+                    if(strcmp(type_str, " Hub") == 0){
+                        row[strcspn(row, "\n")] = '\0';
+                        fprintf(temp, "%s%s, \n", row, child_id);
+                    } else {
+                        fprintf(temp, "%s, %s, %s, 0, %s \n", current_id, pid_str, type_str, child_id);
+                    }
+                
+                } else{
+                    perror("second id is not a control device \n");
+                    return FAILURE;
+                } 
+                
                 
             } else {
                 fprintf(temp, "%s", row); 

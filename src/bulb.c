@@ -5,6 +5,7 @@ bulb createBulb(){
     bulb.state = 0;
     bulb.switches = 1;
     bulb.registry.time = 0.0;
+    bulb.registry.parent_id = 0;
     return bulb;
 }
 
@@ -32,13 +33,27 @@ int createProcessBulb(int num){
         FILE* fp = initDevice(fd, pipe);
         pid_t child_pid = getpid();
         int child_pid_int = (int) child_pid;
-        fprintf(fp,"%d, %d, Bulb, 0 \n", bulb.registry.id, child_pid_int);
+        fprintf(fp,"%d, %d, Bulb, 0, \n", bulb.registry.id, child_pid_int);
         fclose(fp);
 
-        
-
+        char buf[50];        
+        int command;
+        char id[10];
+        char pos[10];
         while(1){
-            
+            memset(buf, 0, sizeof(buf));
+            int bytes_read = read(pipe, buf, sizeof(buf));
+            if(bytes_read > 0){
+                command = getCommand(buf, id, pos);
+                switch(command){
+                    case CHANGE_PARENT_COMMAND:
+                        bulb.registry.parent_id = atoi(id);
+                        break;
+                        
+                    default:
+                        break;                    
+                }
+            }
         }
     } else{
         return checkSuccess(fd, pid);

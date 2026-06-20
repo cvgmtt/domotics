@@ -18,4 +18,7 @@ int checkSuccess(int fd[], pid_t pid);
 
 int createPipe(int num, char* pipename, size_t size);
 
+int getCommand(char* buf, char* id, char* pos);
+
+
 #endif

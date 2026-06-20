@@ -8,6 +8,7 @@ fridge createFridge(int _perc, int _temp, int _thermostat){
     fridge.registry.perc = _perc;
     fridge.registry.temp = _temp;
     fridge.registry.thermostat = _thermostat;
+    fridge.registry.parent_id = 0;
     return fridge;
 
 }
@@ -34,11 +35,27 @@ int createProcessFridge(int num){
         FILE* fp = initDevice(fd, pipe);
         pid_t child_pid = getpid();
         int child_pid_int = (int) child_pid;
-        fprintf(fp,"%d, %d, Fridge, 0 %d\n", fridge.registry.id, child_pid_int, 0 );
+        fprintf(fp,"%d, %d, Fridge, 0, \n", fridge.registry.id, child_pid_int);
         fclose(fp);
-
+        char buf[50];
+        int command;
+        char id[10];
+        char pos[10];
         while(1){
+            memset(buf, 0, sizeof(buf));
+            int bytes_read = read(pipe, buf, sizeof(buf));
+            if(bytes_read > 0){
+                command = getCommand(buf, id, pos);
 
+                switch(command){
+                    case 6:
+                        fridge.registry.parent_id = atoi(id);
+                        break;
+
+                    default:
+                        break;
+                    }
+            }
         }
     } else{
         return checkSuccess(fd, pid);

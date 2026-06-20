@@ -34,11 +34,27 @@ int createProcessWindow(int num){
 
         pid_t child_pid = getpid();
         int child_pid_int = (int) child_pid;
-        fprintf(fp,"%d, %d, Window, 0 %d\n", window.registry.id, child_pid_int, 0);
+        fprintf(fp,"%d, %d, Window, 0, \n", window.registry.id, child_pid_int);
         fclose(fp);
 
+        char buf[50];
+        int command;
+        char id[10];
+        char pos[10];
         while(1){
+            memset(buf, 0, sizeof(buf));
+            int bytes_read = read(pipe, buf, sizeof(buf));
+            if(bytes_read > 0){
+                command = getCommand(buf, id, pos);
 
+                switch(command){
+                    case 6:
+                        window.registry.parent_id = atoi(id);
+
+                    default:
+                        break;
+                    }
+            }
         }
     } else{
         return checkSuccess(fd, pid);

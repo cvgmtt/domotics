@@ -26,13 +26,13 @@ int checkSuccess(int fd[], pid_t pid){
 
     if (bytes_read > 0) {
         if (child_status == FAILURE) {
-            perror("could not open file");
+            perror("could not open file \n");
             waitpid(pid, NULL, 0);
         }
         return child_status; 
     } else {
         waitpid(pid, NULL, 0);
-        perror("process crashed");
+        perror("process crashed \n");
         return FAILURE;
     }
 }
@@ -40,10 +40,67 @@ int checkSuccess(int fd[], pid_t pid){
 int createPipe(int num, char* pipename, size_t size){
     snprintf(pipename, size, "/tmp/domotics_%d", num);
     if(mkfifo(pipename, 0644) == 0){
-        printf("pipe opened correctly");
+        printf("pipe opened correctly \n");
         return SUCCESS;
     }else{
-        perror("error in opening pipe");
+        perror("error in opening pipe \n");
         return FAILURE;
     };
+}
+
+int getCommand(char* buf, char* id, char* pos){
+    char* token = strtok(buf, " ");
+    if(token != NULL){
+        printf("%s \n", token);
+        if(strcmp(token, "new") == 0){
+            token = strtok(NULL, " ");
+            if(token != NULL){
+                char* id_temp = strtok(NULL, " ");
+                strcpy(id, id_temp);
+                if(strcmp(token, "parent") == 0){
+                    printf("parent \n");
+                    return CHANGE_PARENT_COMMAND;
+                } else if(strcmp(token, "child") == 0){
+                    printf("child \n");
+                    return CHANGE_CHILD_COMMAND;
+                } else {
+                    return INVALID_COMMAND;
+                }
+            } else {
+                return INVALID_COMMAND;
+            }
+        } else if(strcmp(token, "del") == 0){
+            char* id_temp = strtok(NULL, " ");
+            strcpy(id, id_temp);
+            if(id_temp == NULL){
+                return INVALID_COMMAND;
+            }
+            return DEL_COMMAND;
+        } else if(strcmp(token, "switch") == 0){
+            char* id_temp = strtok(NULL, " ");
+            strcpy(id, id_temp);
+            if(id_temp == NULL){
+                return INVALID_COMMAND;
+            }
+            strtok(NULL, " ");  //label
+            char* pos_temp = strtok(NULL, " "); 
+            strcpy(pos, pos_temp);
+            if(pos == NULL){
+                return INVALID_COMMAND;
+            }
+            return SWITCH_COMMAND;
+        }else if(strcmp(token, "info") == 0){
+            char* id_temp = strtok(NULL, " ");
+            strcpy(id, id_temp);
+            if(id_temp == NULL){
+                return INVALID_COMMAND;
+            }
+            return INFO_COMMAND;
+        } else {
+            return INVALID_COMMAND;
+        }
+    } else{
+        return INVALID_COMMAND;
+    }
+
 }
