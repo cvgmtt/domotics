@@ -48,17 +48,22 @@ int createPipe(int num, char* pipename, size_t size){
     };
 }
 
-int getCommand(char* buf, char* id, char* pos){
+int getCommand(char* buf, char* id, char* pos, char* child_id){
     char* token = strtok(buf, " ");
     if(token != NULL){
-        printf("%s \n", token);
         if(strcmp(token, "new") == 0){
             token = strtok(NULL, " ");
             if(token != NULL){
                 char* id_temp = strtok(NULL, " ");
                 strcpy(id, id_temp);
                 if(strcmp(token, "parent") == 0){
-                    printf("parent \n");
+                    printf("got in get command \n");
+                    token = strtok(NULL, " ");
+                    //in case the interaction device already had a controller device parent
+                    if(token != NULL){
+                        strcpy(child_id, token);
+                        return CHANGE_PARENT_COMMAND;
+                    }
                     return CHANGE_PARENT_COMMAND;
                 } else if(strcmp(token, "child") == 0){
                     printf("child \n");

@@ -91,11 +91,14 @@ int main(){
                     token = strtok(NULL, " ");
                     if(token != NULL){
                         char* parent_id = token;
-                        if(link_command(child_id, parent_id) == SUCCESS){
+                        int result = link_command(child_id, parent_id);
+                        if(result == SUCCESS){
                             printf("Linked %s with %s \n", child_id, parent_id);
-                        }else{
-                            printf("couldn't link these two \n");
-                        };
+                        }else if(result == ALREADY_LINKED){
+                            printf("these two devices are already linked \n");
+                        } else if(result == FAILURE){
+                            perror("error in linking");
+                        }
                     } else{
                     printf("wrong input. linking requires two valid ids\n");
                 }
@@ -165,23 +168,36 @@ int list(char* controller_pid_string){
 }
 
 int link_command(char* child_id, char* parent_id){
+    char parent_to_change[5] = "0";
+
+    check_partners(parent_to_change, child_id, parent_id);
+
+    if(strcmp(parent_to_change, parent_id) == 0){
+        return ALREADY_LINKED;
+    }
+
     FILE* fp = fopen(".registry.txt", "r");
     FILE* temp = fopen("temp.txt", "w");
-    char pipename_child[20];
-    char pipename_parent[20];
+    char pipename_child[30];
+    char pipename_parent[30];
+    char pipename_old_parent[30];
     snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%s", child_id);
     snprintf(pipename_parent, sizeof(pipename_parent), "/tmp/domotics_%s", parent_id);
     int child_pipe = open(pipename_child, O_WRONLY | O_NONBLOCK);
     int parent_pipe = open(pipename_parent, O_WRONLY | O_NONBLOCK);
     
 
-    char buffer[15];
+    char buffer[50];
     if (fp == NULL || temp == NULL || child_pipe < 0 || parent_pipe < 0) {
         printf("error in linking \n");
+        fclose(fp);
+        fclose(temp);
+        close(parent_pipe);
+        close(child_pipe);
         return FAILURE;
     }
 
-    char row[256];
+    char row[100];
     
     while (fgets(row, sizeof(row), fp) != NULL) {
         char row_copy[256];
@@ -190,38 +206,73 @@ int link_command(char* child_id, char* parent_id){
         char* current_id = strtok(row_copy, ", ");
         
         if (current_id != NULL) {
-            char* pid_str = strtok(NULL, ",");
-            char* type_str = strtok(NULL, ",");
+            char* pid_str = strtok(NULL, ", ");
+            char* type_str = strtok(NULL, ", ");
             
-            char* old_parent_str = strtok(NULL, ",");
+            char* old_parent_str = strtok(NULL, ", ");
             
             char* children_str = strtok(NULL, "\n"); 
             if (children_str == NULL) {
-                children_str = ""; 
+                children_str = "";        
             }
+            
 
             if (strcmp(current_id, child_id) == 0) {
-                if(strcmp(type_str, " Hub") == 0 || strcmp(type_str, " Timer") == 0){
+                if(strcmp(type_str, "Hub") == 0 || strcmp(type_str, "Timer") == 0){
                     perror("first id is not an interaction device \n");
                     return FAILURE;
                 }
-                snprintf(buffer, sizeof(buffer), "new parent %s", parent_id);
-                write(child_pipe, buffer, sizeof(buffer));
-                close(child_pipe);
+                if(strcmp(parent_to_change, "0") == 0){
+                    memset(buffer, 0, sizeof(buffer));
+                    snprintf(buffer, sizeof(buffer), "new parent %s", parent_id);
+                    write(child_pipe, buffer, strlen(buffer) + 1);
+                    close(child_pipe);
+                } else{
+                    memset(buffer, 0, sizeof(buffer));
+                    snprintf(buffer, sizeof(buffer), "new parent %s %s", parent_id, child_id);
+                    snprintf(pipename_old_parent, sizeof(pipename_old_parent), "/tmp/domotics_%s", parent_to_change);
+                    int old_parent_pipe = open(pipename_old_parent, O_WRONLY | O_NONBLOCK);
+                    if(old_parent_pipe >= 0){
+                        write(old_parent_pipe, buffer, strlen(buffer) + 1);
+                        close(old_parent_pipe);
+                    }
 
-                fprintf(temp, "%s, %s, %s, %s, %s \n", current_id, pid_str, type_str, parent_id, children_str);
+                    close(child_pipe);
+
+                }
+                
+
+                fprintf(temp, "%s, %s, %s, %s, %s\n", current_id, pid_str, type_str, parent_id, children_str);
+            } //modify old parent if there is one
+            else if (strcmp(parent_to_change, "0") != 0 && strcmp(current_id, parent_to_change) == 0) {
+                
+                char new_children_str[100] = ""; 
+                
+                char* child_token = strtok(children_str, ", ");
+                while (child_token != NULL) {
+                    if (strcmp(child_token, child_id) != 0) {
+                        strcat(new_children_str, child_token);
+                        strcat(new_children_str, ", ");
+                    }
+                    child_token = strtok(NULL, ", ");
+                }
+                
+                fprintf(temp, "%s, %s, %s, %s, %s\n", current_id, pid_str, type_str, old_parent_str, new_children_str);
             } 
+
+            //modify new parent
             else if (strcmp(current_id, parent_id) == 0) {
-                if(strcmp(type_str, " Hub") == 0 || strcmp(type_str, " Timer") == 0){
+                if(strcmp(type_str, "Hub") == 0 || strcmp(type_str, "Timer") == 0){
+                    memset(buffer, 0, sizeof(buffer));
                     snprintf(buffer, sizeof(buffer), "new child %s", child_id);
-                    write(parent_pipe, buffer, sizeof(buffer));
+                    write(parent_pipe, buffer, strlen(buffer) + 1);
                     close(parent_pipe);
 
-                    if(strcmp(type_str, " Hub") == 0){
+                    if(strcmp(type_str, "Hub") == 0){
                         row[strcspn(row, "\n")] = '\0';
                         fprintf(temp, "%s%s, \n", row, child_id);
                     } else {
-                        fprintf(temp, "%s, %s, %s, 0, %s \n", current_id, pid_str, type_str, child_id);
+                        fprintf(temp, "%s, %s, %s, 0, %s, \n", current_id, pid_str, type_str, child_id);
                     }
                 
                 } else{
@@ -229,8 +280,10 @@ int link_command(char* child_id, char* parent_id){
                     return FAILURE;
                 } 
                 
-                
-            } else {
+            } 
+            
+            
+            else {
                 fprintf(temp, "%s", row); 
             }
         }
@@ -243,5 +296,30 @@ int link_command(char* child_id, char* parent_id){
 
     return SUCCESS;
 }
-
-
+//function to find the control device in case an interaction device has one and to check wether the control device selected is full or not
+int check_parents(char* parent_to_change, char* child_id, char* parent_id){
+    FILE* fp_scan = fopen(".registry.txt", "r");
+    if (fp_scan != NULL) {
+        char scan_row[50];
+        while (fgets(scan_row, sizeof(scan_row), fp_scan) != NULL) {
+            char scan_copy[256];
+            strcpy(scan_copy, scan_row);
+            
+            char* curr = strtok(scan_copy, ", ");
+            if (curr != NULL && strcmp(curr, child_id) == 0) {
+                strtok(NULL, ", "); 
+                strtok(NULL, ", "); 
+                char* old_p = strtok(NULL, ", "); 
+                if (old_p != NULL) {
+                    strcpy(parent_to_change, old_p);
+                }
+            }
+    
+        if (strcmp(curr, parent_id) == 0) {
+                //send messages to device to understand wether it's full or not
+                }
+            }
+        }
+    fclose(fp_scan);
+    return SUCCESS;
+}

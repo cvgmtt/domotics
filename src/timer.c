@@ -39,19 +39,30 @@ int createProcessTimer(int num){
         int command;
         char id[10];
         char pos[10];
+        char child_id[10];
+        char pipename_child[20];
+
         while(1){
             memset(buf, 0, sizeof(buf));
             int bytes_read = read(pipe, buf, sizeof(buf));
             if(bytes_read > 0){
-                command = getCommand(buf, id, pos);
+                command = getCommand(buf, id, pos, child_id);
                 switch (command)
                 {
-                case CHANGE_CHILD_COMMAND:
-                    timer.registry.child_id = atoi(id);
-                    break;
-                
-                default:
-                    break;
+                    case CHANGE_PARENT_COMMAND:
+                        timer.registry.child_id = -1;            
+                        snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%s", child_id);
+                        int child_pipe = open(pipename_child, O_WRONLY | O_NONBLOCK);
+                        write(child_pipe, buf, sizeof(buf));
+                        close(child_pipe);
+                        break;
+
+                    case CHANGE_CHILD_COMMAND:
+                        timer.registry.child_id = atoi(id);
+                        break;
+                    
+                    default:
+                        break;
                 }
             }
         }

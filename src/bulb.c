@@ -40,13 +40,16 @@ int createProcessBulb(int num){
         int command;
         char id[10];
         char pos[10];
+        char child_id[10];        
         while(1){
             memset(buf, 0, sizeof(buf));
             int bytes_read = read(pipe, buf, sizeof(buf));
             if(bytes_read > 0){
-                command = getCommand(buf, id, pos);
+                printf("%s \n", buf);
+                command = getCommand(buf, id, pos, child_id);
                 switch(command){
                     case CHANGE_PARENT_COMMAND:
+                        printf("got in bulb change parent command \n");
                         bulb.registry.parent_id = atoi(id);
                         break;
                         

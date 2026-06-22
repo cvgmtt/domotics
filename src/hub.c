@@ -6,6 +6,10 @@ hub createHub(){
     hub.switches = 1;
     hub.registry.child_num = 0;
     hub.registry.parent_id = 0;
+    for(int i = 0; i < 20; i++){
+        hub.registry.child_id[i] = -1;
+        hub.registry.child_switches[i] = -1;
+    }
     return hub;
 }
 
@@ -40,16 +44,43 @@ int createProcessHub(int num){
         int command;
         char id[10];
         char pos[10];
+        char child_id[10];
+        char pipename_child[20];
         while(1){
             memset(buf, 0, sizeof(buf));
             int bytes_read = read(pipe, buf, sizeof(buf));
             if(bytes_read > 0){
-                command = getCommand(buf, id, pos);
+                command = getCommand(buf, id, pos, child_id);
 
                 switch(command){
+                    case CHANGE_PARENT_COMMAND:
+                        for(int i = 0; i < hub.registry.child_num; i++){
+                            if(hub.registry.child_id[i] == atoi(child_id)){
+                                hub.registry.child_id[i] = -1;
+                                hub.registry.child_switches[i] = -1;
+                                hub.registry.child_num--;
+                                snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%s", child_id);
+                                int child_pipe = open(pipename_child, O_WRONLY | O_NONBLOCK);
+                                write(child_pipe, buf, sizeof(buf));
+                                close(child_pipe);
+                                break;
+                            }
+                        }
+                        break;
+
+
                     case CHANGE_CHILD_COMMAND:
-                        hub.registry.child_id[hub.registry.child_num] = atoi(id);
-                        hub.registry.child_num++;
+                        if (hub.registry.child_num == 20){
+
+                        }
+                        for(int i = 0; i < hub.registry.child_num; i++){
+                            if(hub.registry.child_id[i] == -1){
+                                hub.registry.child_id[hub.registry.child_num] = atoi(id);
+                                hub.registry.child_switches[i] = hub.switches;
+                                hub.registry.child_num++;
+                                break;
+                            }
+                        }
                         break;
                     
                     

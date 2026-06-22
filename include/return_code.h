@@ -12,6 +12,9 @@
 #define DEL_COMMAND 8
 #define SWITCH_COMMAND 9
 #define INFO_COMMAND 10
+#define HUB_FULL 11
+#define ALREADY_LINKED 12
+#define CONTROL_DEVICE_FULL 13
 
 
 
