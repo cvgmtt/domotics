@@ -31,7 +31,7 @@ int createProcessFridge(int num){
             success = createPipe(fridge.registry.id, pipename, sizeof(pipename));
         } while (success == FAILURE);
 
-        int pipe = open(pipename, O_RDONLY | O_NONBLOCK);
+        int pipe = open(pipename, O_RDWR);
         FILE* fp = initDevice(fd, pipe);
         pid_t child_pid = getpid();
         int child_pid_int = (int) child_pid;

@@ -20,7 +20,14 @@ int main(){
         return FAILURE;
     }
     fclose(fp);
-    
+
+    char *pipename = "/tmp/domotics_0";
+    if(mkfifo(pipename, 0644) == 0){
+        printf("controller pipe opened correctly \n");
+    }else{
+        perror("error in opening controller pipe \n");
+        return FAILURE;
+    };
 
     while(1){
         char terminal_input[30];
@@ -170,12 +177,16 @@ int list(char* controller_pid_string){
 int link_command(char* child_id, char* parent_id){
     char parent_to_change[5] = "0";
 
-    check_partners(parent_to_change, child_id, parent_id);
+    int result = check_parents(parent_to_change, child_id, parent_id);
 
     if(strcmp(parent_to_change, parent_id) == 0){
         return ALREADY_LINKED;
+    } else if (result == CONTROL_DEVICE_FULL){
+        return CONTROL_DEVICE_FULL;
+    } else if(result == FAILURE){
+        return FAILURE;
     }
-
+    printf("got past chek_parents");
     FILE* fp = fopen(".registry.txt", "r");
     FILE* temp = fopen("temp.txt", "w");
     char pipename_child[30];
@@ -246,7 +257,7 @@ int link_command(char* child_id, char* parent_id){
             } //modify old parent if there is one
             else if (strcmp(parent_to_change, "0") != 0 && strcmp(current_id, parent_to_change) == 0) {
                 
-                char new_children_str[100] = ""; 
+                char new_children_str[200] = ""; 
                 
                 char* child_token = strtok(children_str, ", ");
                 while (child_token != NULL) {
@@ -298,28 +309,41 @@ int link_command(char* child_id, char* parent_id){
 }
 //function to find the control device in case an interaction device has one and to check wether the control device selected is full or not
 int check_parents(char* parent_to_change, char* child_id, char* parent_id){
+    int result = CONTROL_DEVICE_INCOMPLETE;
     FILE* fp_scan = fopen(".registry.txt", "r");
     if (fp_scan != NULL) {
-        char scan_row[50];
+        char scan_row[200];
         while (fgets(scan_row, sizeof(scan_row), fp_scan) != NULL) {
-            char scan_copy[256];
+            char scan_copy[200];
             strcpy(scan_copy, scan_row);
-            
             char* curr = strtok(scan_copy, ", ");
+            strtok(NULL, ", "); 
+            char* type_str = strtok(NULL, ", ");
+            char* old_p = strtok(NULL, ", "); 
             if (curr != NULL && strcmp(curr, child_id) == 0) {
-                strtok(NULL, ", "); 
-                strtok(NULL, ", "); 
-                char* old_p = strtok(NULL, ", "); 
                 if (old_p != NULL) {
                     strcpy(parent_to_change, old_p);
                 }
-            }
-    
-        if (strcmp(curr, parent_id) == 0) {
-                //send messages to device to understand wether it's full or not
+            } else if (strcmp(curr, parent_id) == 0) {
+                char* children_str = strtok(NULL, "\n"); // lista figli
+                int child_count = 0;
+                if (children_str != NULL) {
+                    char* temp_child = strtok(children_str, ", ");
+                    while (temp_child != NULL) {
+                        child_count++;
+                        temp_child = strtok(NULL, ", ");
+                    }
+                }
+                if (type_str != NULL && strcmp(type_str, "Hub") == 0 && child_count >= 20) {
+                    result = CONTROL_DEVICE_FULL;
+                } 
+                else if (type_str != NULL && strcmp(type_str, "Timer") == 0 && child_count >= 1) {
+                    result = CONTROL_DEVICE_FULL;
                 }
             }
         }
     fclose(fp_scan);
-    return SUCCESS;
+    return result;
+    }
+    return FAILURE;
 }

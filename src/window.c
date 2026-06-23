@@ -29,7 +29,7 @@ int createProcessWindow(int num){
             success = createPipe(window.registry.id, pipename, sizeof(pipename));
         } while (success == FAILURE);
 
-        int pipe = open(pipename, O_RDONLY | O_NONBLOCK);
+        int pipe = open(pipename, O_RDWR);
         FILE* fp = initDevice(fd, pipe);
 
         pid_t child_pid = getpid();

@@ -28,7 +28,8 @@ int createProcessBulb(int num){
             success = createPipe(bulb.registry.id, pipename, sizeof(pipename));
         } while (success == FAILURE);
 
-        int pipe = open(pipename, O_RDONLY | O_NONBLOCK);
+        //with O_RDONLY it blocks the cpu if you have many processes
+        int pipe = open(pipename, O_RDWR);
         
         FILE* fp = initDevice(fd, pipe);
         pid_t child_pid = getpid();

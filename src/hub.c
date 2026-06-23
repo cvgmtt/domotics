@@ -32,8 +32,9 @@ int createProcessHub(int num){
             success = createPipe(hub.registry.id, pipename, sizeof(pipename));
         } while (success == FAILURE);
 
-        int pipe = open(pipename, O_RDONLY | O_NONBLOCK);
+        int pipe = open(pipename, O_RDWR);
   
+
 
         FILE* fp = initDevice(fd, pipe);
         pid_t child_pid = getpid();
@@ -70,12 +71,9 @@ int createProcessHub(int num){
 
 
                     case CHANGE_CHILD_COMMAND:
-                        if (hub.registry.child_num == 20){
-
-                        }
                         for(int i = 0; i < hub.registry.child_num; i++){
                             if(hub.registry.child_id[i] == -1){
-                                hub.registry.child_id[hub.registry.child_num] = atoi(id);
+                                hub.registry.child_id[i] = atoi(id);
                                 hub.registry.child_switches[i] = hub.switches;
                                 hub.registry.child_num++;
                                 break;

@@ -7,6 +7,7 @@ timer createTimer(){
     timer.registry.begin_minutes = 0;
     timer.registry.end_minutes = 0;
     timer.registry.parent_id = 0;
+    timer.registry.child_id = -1;
     return timer;
 }
 
@@ -29,7 +30,7 @@ int createProcessTimer(int num){
             success = createPipe(timer.registry.id, pipename, sizeof(pipename));
         } while (success == FAILURE);
 
-        int pipe = open(pipename, O_RDONLY | O_NONBLOCK);
+        int pipe = open(pipename, O_RDWR);
         FILE* fp = initDevice(fd, pipe);
         pid_t child_pid = getpid();
         int child_pid_int = (int) child_pid;
