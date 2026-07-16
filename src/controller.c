@@ -1,9 +1,6 @@
 #include "controller.h"
-#include "string.h"
-#include "stdio.h"
+#include <string.h>
 #include <stdio.h>
-
-
 
 
 int main(){
@@ -139,11 +136,11 @@ int main(){
                 token = strtok(NULL, " ");
                 if(token != NULL){
                     char* id1 = token;
+                    //string* infos = get_info(id1); //returns info of the device with id1, if it doesn't exist, throw an error
                     //iterates through ids till you find the correct ones, if you don't find them, throw an error
                 } else{
                     printf("wrong input. info requires a valid id\n");
                 }
-            
             } else{
                 printf("please, provide one of these commands:\n");
                 printf("list, add <device>, del <id>, link <id1> to <id2>, switch <id> <label> <pos>, info <id>\n");                
