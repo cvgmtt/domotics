@@ -344,3 +344,41 @@ int check_parents(char* parent_to_change, char* child_id, char* parent_id){
     }
     return FAILURE;
 }
+
+//function to get the infos of a device given its id, if it doesn't exist, throw an error
+string* get_info(char* id) {
+    //call get_device_row to find the row of registry.txt corresponding to the device with the given id
+    char* row = get_device_row(id);
+    if (row != NULL) {
+        //here i should check if the device is a control device or an interaction device and return the corresponding infos
+    } else {
+        printf("Device with id %s not found.\n", id);
+        return NULL;
+    }
+}
+
+char* get_device_row(char* id) {
+FILE *fp = fopen(".registry.txt", "r");
+    //checks if file is not empty
+    if (fp != NULL) {
+        char row[30];
+        //iterates through the rows of the file
+        while (fgets(row, sizeof(row), fp) != NULL) {
+            //copies the row to avoid modifying the original string
+            char row_copy[200];
+            strcpy(row_copy, row);
+            //tokenizes the row to get the id of the device
+            char* current_id = strtok(row_copy, ", ");
+            //checks if the id of the device is the same as the one passed as argument
+            if (current_id != NULL && strcmp(current_id, id) == 0) {
+                //if it is, returns the row
+                return row_copy;
+            }
+        }
+        fclose(fp);
+        return NULL; // id not found
+    } else{
+        printf("error in opening registry file \n");
+        return NULL;
+    }
+}

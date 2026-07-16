@@ -1,4 +1,4 @@
-#include "bulb.h"
+#include "../include/bulb.h"
 
 bulb createBulb(){
     bulb bulb;
