@@ -47,6 +47,11 @@ int createProcessHub(int num){
         char pos[10];
         char child_id[10];
         char pipename_child[20];
+
+        //uso questo per aprire la pipe del controller e averla sempre pronta invece di doverlo aprire ogni volta,
+        //forse non è la cosa migliore da fare, devo chiedere a Matteo
+        char controller_pipename[20] = open("/tmp/domotics_0", O_WRONLY | O_NONBLOCK);
+
         while(1){
             memset(buf, 0, sizeof(buf));
             int bytes_read = read(pipe, buf, sizeof(buf));
@@ -82,17 +87,13 @@ int createProcessHub(int num){
                         break;
                     
                     case SELF_INFO_COMMAND:
-                        char* info = info_command();
-                        int info_pipe = open(pipename, O_WRONLY | O_NONBLOCK);
-                        write(info_pipe, info, strlen(info) + 1);
-                        close(info_pipe);
+                        char* info = self_info_command();
+                        write(controller_pipename, info, strlen(info) + 1);
                         break;
-                        
+
                     case CHILD_INFO_COMMAND:
-                        char* info = info_command();
-                        int info_pipe = open(pipename, O_WRONLY | O_NONBLOCK);
-                        write(info_pipe, info, strlen(info) + 1);
-                        close(info_pipe);
+                        char* info = child_info_command(child_id);
+                        write(controller_pipename, info, strlen(info) + 1);
                         break;
                     
                     default:
@@ -103,4 +104,51 @@ int createProcessHub(int num){
     } else{
         return checkSuccess(fd, pid);
     }
+}
+
+char* self_info_command(){
+    char info[100];
+    char* registry = hub_registry_info(current_hub);
+    //if the string of registry info is NULL, make it contain an error message
+    if(registry == NULL){
+        registry = "error reading registry";
+    }
+    //formats the info as "State: <state> Switch: <switches> Registry: <registry info>"
+    snprintf(info, sizeof(info),
+        "State: %d Switch: %d Registry: %s",
+        current_hub->state,
+        current_hub->switches,
+        registry );
+    return info;
+}
+ 
+char* registry_info(){
+    char info[100];
+    char childs[100];
+    childs[0] = '\0';
+    int len = 0;
+
+    //adds the child ids to the string childs, separated by commas
+    for (int i = 0; i < h->registry.child_num; i++) {
+        if (i > 0) {
+            len += snprintf(childs + len, sizeof(childs) - len, ",");
+        }
+        len += snprintf(childs + len, sizeof(childs) - len, "%d", h->registry.child_id[i]);
+    }
+    
+    //formats the info as "id=<id parent_id=<parent_id> child_num=<child_num> children=[<string of childs>]"
+    snprintf(info, sizeof(info) - len,
+        "id=%d parent_id=%d child_num=%d children=[%s]",
+        h->registry.id,
+        h->registry.parent_id,
+        h->registry.child_num,
+        childs);
+
+    return info;
+}
+
+char* child_info_command(char* child_id){
+    //needs to write to the pipe of the desired child the command to get its info, then read the response from the pipe of the child and return it
+    //then return the response to the controller
+    return "\0";
 }
