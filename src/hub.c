@@ -81,6 +81,19 @@ int createProcessHub(int num){
                         }
                         break;
                     
+                    case SELF_INFO_COMMAND:
+                        char* info = info_command();
+                        int info_pipe = open(pipename, O_WRONLY | O_NONBLOCK);
+                        write(info_pipe, info, strlen(info) + 1);
+                        close(info_pipe);
+                        break;
+                        
+                    case CHILD_INFO_COMMAND:
+                        char* info = info_command();
+                        int info_pipe = open(pipename, O_WRONLY | O_NONBLOCK);
+                        write(info_pipe, info, strlen(info) + 1);
+                        close(info_pipe);
+                        break;
                     
                     default:
                         break;

@@ -21,5 +21,7 @@ typedef struct hub{
 
 hub createHub();
 int createProcessHub(int num);
+char* info_command();
+char* child_info_command(char* child_id);
 
 #endif

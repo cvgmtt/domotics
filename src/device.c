@@ -94,13 +94,20 @@ int getCommand(char* buf, char* id, char* pos, char* child_id){
                 return INVALID_COMMAND;
             }
             return SWITCH_COMMAND;
-        }else if(strcmp(token, "info") == 0){
+        }else if(strcmp(token, "self_info") == 0){
             char* id_temp = strtok(NULL, " ");
             strcpy(id, id_temp);
             if(id_temp == NULL){
                 return INVALID_COMMAND;
             }
-            return INFO_COMMAND;
+            return SELF_INFO_COMMAND;
+        }else if(strcmp(token, "child_info") == 0){
+            char* id_temp = strtok(NULL, " ");
+            strcpy(id, id_temp);
+            if(id_temp == NULL){
+                return INVALID_COMMAND;
+            }
+            return CHILD_INFO_COMMAND;
         } else {
             return INVALID_COMMAND;
         }
