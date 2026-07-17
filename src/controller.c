@@ -378,8 +378,7 @@ char* get_info(char* id) {
         //read response from the pipe of the control device and return it
         //need to understand the name of the pipe to read from
         char response[30]; 
-        int resp_fd = open("path_to_response_pipe", O_RDONLY);
-        ssize_t n = read(resp_fd, response, sizeof(response) - 1);
+        ssize_t n = read(pipename, response, sizeof(response) - 1);
         if (response[0] = '\0' || response[0] == NULL) {
             // handle empty response case
             response = "No response received.";
