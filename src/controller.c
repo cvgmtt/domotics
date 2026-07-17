@@ -346,11 +346,47 @@ int check_parents(char* parent_to_change, char* child_id, char* parent_id){
 }
 
 //function to get the infos of a device given its id, if it doesn't exist, throw an error
-string* get_info(char* id) {
+char* get_info(char* id) {
     //call get_device_row to find the row of registry.txt corresponding to the device with the given id
     char* row = get_device_row(id);
     if (row != NULL) {
-        //here i should check if the device is a control device or an interaction device and return the corresponding infos
+        //copy the row to avoid modifying the original string
+        char* row_copy[30];
+        strcpy(row_copy, row);
+
+        strtok(row_copy, ", "); // id
+        strtok(NULL, ", "); // pid
+        char* type = strtok(NULL, ", "); // type
+        char pipename[30];
+
+        //if the device is a control device, send a message that returns its info, 
+        //if not find the parent of the interaction device and send it a message requesting info of the child 
+        if (strcmp(type, "Hub") == 0 || strcmp(type, "Timer") == 0){
+            //open pipe and send a message to the control device to get its info
+            snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", id);
+            int self_pipe = open(pipename, O_WRONLY | O_NONBLOCK);
+            write(self_pipe, "self_info", strlen("self_info") + 1);
+            close(self_pipe);
+        }else{
+            //get the parent of the interaction device and open the pipe to send it a message to get the info of the child
+            char* parent = strtok(NULL, ", "); // parent
+            snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", parent);
+            int parent_pipe = open(pipename, O_WRONLY | O_NONBLOCK);
+            write(parent_pipe, "child_info", strlen("child_info") + 1);
+            close(parent_pipe);
+        }
+        //read response from the pipe of the control device and return it
+        //need to understand the name of the pipe to read from
+        char response[30]; 
+        int resp_fd = open("path_to_response_pipe", O_RDONLY);
+        ssize_t n = read(resp_fd, response, sizeof(response) - 1);
+        if (response[0] = '\0' || response[0] == NULL) {
+            // handle empty response case
+            response = "No response received.";
+        }
+        close(resp_fd);
+        // return the response string
+        return response; 
     } else {
         printf("Device with id %s not found.\n", id);
         return NULL;
