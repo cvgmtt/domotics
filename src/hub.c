@@ -95,7 +95,6 @@ int createProcessHub(int num){
                         char* info = child_info_command(child_id);
                         write(controller_pipename, info, strlen(info) + 1);
                         break;
-                    
                     default:
                         break;
                 }

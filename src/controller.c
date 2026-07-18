@@ -136,10 +136,14 @@ int main(){
                 token = strtok(NULL, " ");
                 if(token != NULL){
                     char* id1 = token;
-                    //string* infos = get_info(id1); //returns info of the device with id1, if it doesn't exist, throw an error
-                    //iterates through ids till you find the correct ones, if you don't find them, throw an error
+                    char* info = get_info(id1);
+                    if(info == NULL){
+                        printf("could not get info of the device\n");
+                    } else{
+                        printf("Info of device with id %s:\n %s \n", id1, info);
+                    }
                 } else{
-                    printf("wrong input. info requires a valid id\n");
+                    printf("wrong input. info requires <id>\n");
                 }
             } else{
                 printf("please, provide one of these commands:\n");
@@ -345,13 +349,14 @@ int check_parents(char* parent_to_change, char* child_id, char* parent_id){
     return FAILURE;
 }
 
-//function to get the infos of a device given its id, if it doesn't exist, throw an error
+//function to get the infos of a device given its id
+//if it doesn't exist or is an interactiond device without a parentreturns NULL
 char* get_info(char* id) {
     //call get_device_row to find the row of registry.txt corresponding to the device with the given id
     char* row = get_device_row(id);
     if (row != NULL) {
         //copy the row to avoid modifying the original string
-        char* row_copy[30];
+        char row_copy[30];
         strcpy(row_copy, row);
 
         strtok(row_copy, ", "); // id
@@ -372,33 +377,35 @@ char* get_info(char* id) {
             char* parent = strtok(NULL, ", "); // parent
             //handle case where parent is 0, which means is an interaction device without a parent, so i guess you can't get info
             if(strcmp(parent, "0") == 0){
-                //not sure if i should return NULL or the error message itself, needs to be checked with the BOSS
                 printf("Device with id %s is an interaction device without a parent, cannot get info.\n", id);
                 return NULL;
             }
             snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", parent);
             int parent_pipe = open(pipename, O_WRONLY | O_NONBLOCK);
-            char* message[30];
+            char message[30];
             snprintf(message, sizeof(message), "child_info %s", id);
             write(parent_pipe, message, strlen(message) + 1);
             close(parent_pipe);
         }
         //read response from the pipe of controller and return it
         char response[30]; 
-        ssize_t n = read(pipename, response, sizeof(response) - 1);
-        if (response[0] = '\0' || response[0] == NULL) {
+        ssize_t bytes_read = read(pipename, response, sizeof(response) - 1);
+        if (bytes_read >= 0) {
+            response[bytes_read] = '\0'; // Null-terminate the string
+        } else {
             // handle empty response case
             response = "No response received.";
         }
-        close(resp_fd);
         // return the response string
         return response; 
     } else {
-        printf("Device with id %s not found.\n", id);
+        //id does not exist in the registry, return NULL
+        printf("Device with id %s does not exist in the registry.\n", id);
         return NULL;
     }
 }
 
+//searches the registry for the row corresponding to the device with the given id and returns it, if it doesn't exist returns NULL
 char* get_device_row(char* id) {
 FILE *fp = fopen(".registry.txt", "r");
     //checks if file is not empty
