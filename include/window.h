@@ -16,7 +16,7 @@ typedef struct window{
 }window;
 
 
-
+char* self_info_command();
 window createWindow();
 int createProcessWindow(int num);
 

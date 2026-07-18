@@ -37,11 +37,16 @@ int createProcessBulb(int num){
         fprintf(fp,"%d, %d, Bulb, 0, \n", bulb.registry.id, child_pid_int);
         fclose(fp);
 
+        //pipe of the controller device to send the info of the bulb when requested
+        char controller_pipename[20];
+        snprintf(controller_pipename, sizeof(controller_pipename), "/tmp/domotics_%d",current_bulb->registry.parent_id);
+
         char buf[50];        
         int command;
         char id[10];
         char pos[10];
-        char child_id[10];        
+        char child_id[10];
+
         while(1){
             memset(buf, 0, sizeof(buf));
             int bytes_read = read(pipe, buf, sizeof(buf));
@@ -53,7 +58,11 @@ int createProcessBulb(int num){
                         printf("got in bulb change parent command \n");
                         bulb.registry.parent_id = atoi(id);
                         break;
-                        
+                    case SELF_INFO_COMMAND:
+                        printf("got in bulb self info command \n");
+                        char* info = self_info_command();
+                        write(controller_pipename, info, strlen(info) + 1);
+                        break;
                     default:
                         break;                    
                 }
@@ -62,4 +71,15 @@ int createProcessBulb(int num){
     } else{
         return checkSuccess(fd, pid);
     }
+}
+
+char* self_info_command(){
+    char info[100];
+    snprintf(info, sizeof(info),
+        "State: %d Switch: %d Time: %.2f Parent: %d",
+        current_bulb->state,
+        current_bulb->switches,
+        current_bulb->registry.time,
+        current_bulb->registry.parent_id);
+    return info;
 }

@@ -148,7 +148,19 @@ char* registry_info(){
 }
 
 char* child_info_command(char* child_id){
-    //needs to write to the pipe of the desired child the command to get its info, then read the response from the pipe of the child and return it
-    //then return the response to the controller
-    return "\0";
+    //opens the pipe of the child and sends the command to get its info
+    snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%s", child_id);
+    int child_pipe = open(pipename_child, O_WRONLY | O_NONBLOCK);
+    write(child_pipe, "self_info", strlen("self_info") + 1);
+    close(child_pipe);
+    //reads the response from the child and returns it
+    char response[100];
+    ssize_t bytes_read = read(child_pipe, response, sizeof(response) - 1);
+    if(bytes_read >= 0){ 
+        response[bytes_read] = '\0'; // Null-terminate the string
+    } else {
+        // handle empty response case
+        response = "No response received from child.";
+    }
+    return response;
 }

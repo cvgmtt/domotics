@@ -370,13 +370,20 @@ char* get_info(char* id) {
         }else{
             //get the parent of the interaction device and open the pipe to send it a message to get the info of the child
             char* parent = strtok(NULL, ", "); // parent
+            //handle case where parent is 0, which means is an interaction device without a parent, so i guess you can't get info
+            if(strcmp(parent, "0") == 0){
+                //not sure if i should return NULL or the error message itself, needs to be checked with the BOSS
+                printf("Device with id %s is an interaction device without a parent, cannot get info.\n", id);
+                return NULL;
+            }
             snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", parent);
             int parent_pipe = open(pipename, O_WRONLY | O_NONBLOCK);
-            write(parent_pipe, "child_info", strlen("child_info") + 1);
+            char* message[30];
+            snprintf(message, sizeof(message), "child_info %s", id);
+            write(parent_pipe, message, strlen(message) + 1);
             close(parent_pipe);
         }
-        //read response from the pipe of the control device and return it
-        //need to understand the name of the pipe to read from
+        //read response from the pipe of controller and return it
         char response[30]; 
         ssize_t n = read(pipename, response, sizeof(response) - 1);
         if (response[0] = '\0' || response[0] == NULL) {

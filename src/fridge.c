@@ -62,3 +62,14 @@ int createProcessFridge(int num){
         return checkSuccess(fd, pid);
     }
 }
+
+char* self_info_command(){
+    char info[100];
+    snprintf(info, sizeof(info),
+        "State: %d Switch: %d Time: %.2f Parent: %d",
+        current_bulb->state,
+        current_bulb->switches,
+        current_bulb->registry.time,
+        current_bulb->registry.parent_id);
+    return info;
+}

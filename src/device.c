@@ -95,16 +95,17 @@ int getCommand(char* buf, char* id, char* pos, char* child_id){
             }
             return SWITCH_COMMAND;
         }else if(strcmp(token, "self_info") == 0){
-            char* id_temp = strtok(NULL, " ");
-            strcpy(id, id_temp);
-            if(id_temp == NULL){
+            if(strcmp(strtok(NULL, " "), "") != 0){
                 return INVALID_COMMAND;
             }
             return SELF_INFO_COMMAND;
         }else if(strcmp(token, "child_info") == 0){
-            char* id_temp = strtok(NULL, " ");
-            strcpy(id, id_temp);
-            if(id_temp == NULL){
+            //get the child id from the command 
+            char* child_id_temp = strtok(NULL, " ");
+            //copy the child id to the child_id variable to be used later
+            strcpy(child_id, child_id_temp);
+            //check if the child id is NULL, if it is, return invalid command
+            if(child_id_temp == NULL){
                 return INVALID_COMMAND;
             }
             return CHILD_INFO_COMMAND;

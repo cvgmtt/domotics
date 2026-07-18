@@ -16,7 +16,7 @@ typedef struct bulb{
 }bulb;
 
 
-
+char* self_info_command();
 bulb createBulb();
 int createProcessBulb(int num);
 #endif
