@@ -350,7 +350,7 @@ int check_parents(char* parent_to_change, char* child_id, char* parent_id){
 }
 
 //function to get the infos of a device given its id
-//if it doesn't exist or is an interactiond device without a parentreturns NULL
+//if it doesn't exist or is an interaction device without a parent returns NULL
 char* get_info(char* id) {
     //call get_device_row to find the row of registry.txt corresponding to the device with the given id
     char* row = get_device_row(id);
@@ -373,13 +373,14 @@ char* get_info(char* id) {
             write(self_pipe, "self_info", strlen("self_info") + 1);
             close(self_pipe);
         }else{
-            //get the parent of the interaction device and open the pipe to send it a message to get the info of the child
+            //get the parent of the interaction device
             char* parent = strtok(NULL, ", "); // parent
             //handle case where parent is 0, which means is an interaction device without a parent, so i guess you can't get info
             if(strcmp(parent, "0") == 0){
                 printf("Device with id %s is an interaction device without a parent, cannot get info.\n", id);
                 return NULL;
             }
+            //send message to the parent to get the info of the child
             snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", parent);
             int parent_pipe = open(pipename, O_WRONLY | O_NONBLOCK);
             char message[30];
@@ -388,7 +389,7 @@ char* get_info(char* id) {
             close(parent_pipe);
         }
         //read response from the pipe of controller and return it
-        char response[30]; 
+        char response[100]; 
         ssize_t bytes_read = read(pipename, response, sizeof(response) - 1);
         if (bytes_read >= 0) {
             response[bytes_read] = '\0'; // Null-terminate the string

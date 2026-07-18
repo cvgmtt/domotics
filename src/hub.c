@@ -87,12 +87,13 @@ int createProcessHub(int num){
                         break;
                     
                     case SELF_INFO_COMMAND:
-                        char* info = self_info_command();
+                        char* info = self_info_command(&hub);
                         write(controller_pipename, info, strlen(info) + 1);
                         break;
 
                     case CHILD_INFO_COMMAND:
-                        char* info = child_info_command(child_id);
+                        pipename_child = snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%s", child_id);
+                        char* info = child_info_command(pipename_child, child_id);
                         write(controller_pipename, info, strlen(info) + 1);
                         break;
                     default:
@@ -105,9 +106,9 @@ int createProcessHub(int num){
     }
 }
 
-char* self_info_command(){
+char* self_info_command(hub* current_hub){
     char info[100];
-    char* registry = hub_registry_info(current_hub);
+    char* registry = registry_info(current_hub);
     //if the string of registry info is NULL, make it contain an error message
     if(registry == NULL){
         registry = "error reading registry";
@@ -121,7 +122,7 @@ char* self_info_command(){
     return info;
 }
  
-char* registry_info(){
+char* registry_info(hub* current_hub){
     char info[100];
     char childs[100];
     childs[0] = '\0';
@@ -146,7 +147,7 @@ char* registry_info(){
     return info;
 }
 
-char* child_info_command(char* child_id){
+char* child_info_command(char* pipename_child, char* child_id){
     //opens the pipe of the child and sends the command to get its info
     snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%s", child_id);
     int child_pipe = open(pipename_child, O_WRONLY | O_NONBLOCK);
