@@ -37,6 +37,11 @@ int createProcessWindow(int num){
         fprintf(fp,"%d, %d, Window, 0, \n", window.registry.id, child_pid_int);
         fclose(fp);
 
+        //pipe of the controller device to send the info of the bulb when requested
+        char controller_pipename[20];
+        snprintf(controller_pipename, sizeof(controller_pipename), "/tmp/domotics_%d",window.registry.parent_id);
+
+
         char buf[50];
         int command;
         char id[10];
@@ -51,7 +56,12 @@ int createProcessWindow(int num){
                 switch(command){
                     case 6:
                         window.registry.parent_id = atoi(id);
-
+                        break;
+                    case SELF_INFO_COMMAND:
+                        printf("got in window self info command \n");
+                        char* info = self_info_command(&window);
+                        write(controller_pipename, info, strlen(info) + 1);
+                        break;
                     default:
                         break;
                     }
@@ -62,13 +72,13 @@ int createProcessWindow(int num){
     }
 }
 
-char* self_info_command(){
+char* self_info_command(window* current_window){
     char info[100];
     snprintf(info, sizeof(info),
         "State: %d Switch: %d Time: %.2f Parent: %d",
-        current_bulb->state,
-        current_bulb->switches,
-        current_bulb->registry.time,
-        current_bulb->registry.parent_id);
+        current_window->state,
+        current_window->switches,
+        current_window->registry.time_open,
+        current_window->registry.parent_id);
     return info;
 }

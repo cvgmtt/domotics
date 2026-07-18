@@ -39,7 +39,7 @@ int createProcessBulb(int num){
 
         //pipe of the controller device to send the info of the bulb when requested
         char controller_pipename[20];
-        snprintf(controller_pipename, sizeof(controller_pipename), "/tmp/domotics_%d",current_bulb->registry.parent_id);
+        snprintf(controller_pipename, sizeof(controller_pipename), "/tmp/domotics_%d",bulb.registry.parent_id);
 
         char buf[50];        
         int command;
@@ -60,7 +60,7 @@ int createProcessBulb(int num){
                         break;
                     case SELF_INFO_COMMAND:
                         printf("got in bulb self info command \n");
-                        char* info = self_info_command();
+                        char* info = self_info_command(&bulb);
                         write(controller_pipename, info, strlen(info) + 1);
                         break;
                     default:
@@ -73,7 +73,7 @@ int createProcessBulb(int num){
     }
 }
 
-char* self_info_command(){
+char* self_info_command(bulb* current_bulb){
     char info[100];
     snprintf(info, sizeof(info),
         "State: %d Switch: %d Time: %.2f Parent: %d",

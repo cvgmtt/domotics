@@ -35,8 +35,15 @@ int createProcessFridge(int num){
         FILE* fp = initDevice(fd, pipe);
         pid_t child_pid = getpid();
         int child_pid_int = (int) child_pid;
+
         fprintf(fp,"%d, %d, Fridge, 0, \n", fridge.registry.id, child_pid_int);
         fclose(fp);
+
+        //pipe of the controller device to send the info of the bulb when requested
+        char controller_pipename[20];
+        snprintf(controller_pipename, sizeof(controller_pipename), "/tmp/domotics_%d",fridge.registry.parent_id);
+
+
         char buf[50];
         int command;
         char id[10];
@@ -52,7 +59,11 @@ int createProcessFridge(int num){
                     case 6:
                         fridge.registry.parent_id = atoi(id);
                         break;
-
+                    case SELF_INFO_COMMAND:
+                        printf("got in fridge self info command \n");
+                        char* info = self_info_command(&fridge);
+                        write(controller_pipename, info, strlen(info) + 1);
+                        break;
                     default:
                         break;
                     }
@@ -63,13 +74,17 @@ int createProcessFridge(int num){
     }
 }
 
-char* self_info_command(){
+char* self_info_command(fridge* current_fridge){
     char info[100];
     snprintf(info, sizeof(info),
-        "State: %d Switch: %d Time: %.2f Parent: %d",
-        current_bulb->state,
-        current_bulb->switches,
-        current_bulb->registry.time,
-        current_bulb->registry.parent_id);
+        "State: %d Switch: %d Registry: time_open=%d perc=%d temp=%d thermostat=%d id=%d parent_id=%d",
+        current_fridge->state,
+        current_fridge->switches,
+        current_fridge->registry.time_open,
+        current_fridge->registry.perc,
+        current_fridge->registry.temp,
+        current_fridge->registry.thermostat,
+        current_fridge->registry.id,
+        current_fridge->registry.parent_id);
     return info;
 }
