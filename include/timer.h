@@ -18,7 +18,9 @@ typedef struct timer{
 }timer;
 
 
-
+char* self_info_command(timer* current_timer);
+char* registry_info(timer* current_timer);
+char* child_info_command(char* pipename_child, char* child_id);
 timer createTimer();
 int createProcessTimer(int num);
 
