@@ -50,6 +50,7 @@ int createProcessBulb(int num){
         while(1){
             memset(buf, 0, sizeof(buf));
             int bytes_read = read(pipe, buf, sizeof(buf));
+            char info[100];
             if(bytes_read > 0){
                 printf("%s \n", buf);
                 command = getCommand(buf, id, pos, child_id);
@@ -60,8 +61,10 @@ int createProcessBulb(int num){
                         break;
                     case SELF_INFO_COMMAND:
                         printf("got in bulb self info command \n");
-                        char* info = self_info_command(&bulb);
-                        write(controller_pipename, info, strlen(info) + 1);
+                        bulb_info_command(&bulb, info, sizeof(info));
+                        if(strcmp(info, "") != 0){
+                            write(controller_pipename, info, strlen(info) + 1);
+                        }
                         break;
                     default:
                         break;                    
@@ -73,13 +76,11 @@ int createProcessBulb(int num){
     }
 }
 
-char* self_info_command(bulb* current_bulb){
-    char info[100];
-    snprintf(info, sizeof(info),
+void bulb_info_command(bulb* current_bulb, char* info, size_t size){
+    snprintf(info, size,
         "State: %d Switch: %d Time: %.2f Parent: %d",
         current_bulb->state,
         current_bulb->switches,
         current_bulb->registry.time,
         current_bulb->registry.parent_id);
-    return info;
 }

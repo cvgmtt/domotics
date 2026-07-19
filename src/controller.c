@@ -136,7 +136,8 @@ int main(){
                 token = strtok(NULL, " ");
                 if(token != NULL){
                     char* id1 = token;
-                    char* info = get_info(id1);
+                    char info[100];
+                    get_info(id1, info);
                     if(info == NULL){
                         printf("could not get info of the device\n");
                     } else{
@@ -351,9 +352,10 @@ int check_parents(char* parent_to_change, char* child_id, char* parent_id){
 
 //function to get the infos of a device given its id
 //if it doesn't exist or is an interaction device without a parent returns NULL
-char* get_info(char* id) {
+void get_info(char* id, char* info) {
     //call get_device_row to find the row of registry.txt corresponding to the device with the given id
-    char* row = get_device_row(id);
+    char row[200];
+    get_device_row(id, row);
     if (row != NULL) {
         //copy the row to avoid modifying the original string
         char row_copy[30];
@@ -363,6 +365,8 @@ char* get_info(char* id) {
         strtok(NULL, ", "); // pid
         char* type = strtok(NULL, ", "); // type
         char pipename[30];
+        char controller_pipename[30];
+        snprintf(controller_pipename, sizeof(controller_pipename), "/tmp/domotics_0");
 
         //if the device is a control device, send a message that returns its info, 
         //if not find the parent of the interaction device and send it a message requesting info of the child 
@@ -378,7 +382,7 @@ char* get_info(char* id) {
             //handle case where parent is 0, which means is an interaction device without a parent, so i guess you can't get info
             if(strcmp(parent, "0") == 0){
                 printf("Device with id %s is an interaction device without a parent, cannot get info.\n", id);
-                return NULL;
+                return;
             }
             //send message to the parent to get the info of the child
             snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", parent);
@@ -390,24 +394,23 @@ char* get_info(char* id) {
         }
         //read response from the pipe of controller and return it
         char response[100]; 
-        ssize_t bytes_read = read(pipename, response, sizeof(response) - 1);
+        int controller_pipe = open(controller_pipename, O_RDONLY | O_NONBLOCK);
+        ssize_t bytes_read = read(controller_pipe, response, sizeof(response) - 1);
+        close(controller_pipe);
         if (bytes_read >= 0) {
             response[bytes_read] = '\0'; // Null-terminate the string
-        } else {
-            // handle empty response case
-            response = "No response received.";
-        }
+        } 
         // return the response string
-        return response; 
+        return; 
     } else {
         //id does not exist in the registry, return NULL
         printf("Device with id %s does not exist in the registry.\n", id);
-        return NULL;
+        return;
     }
 }
 
 //searches the registry for the row corresponding to the device with the given id and returns it, if it doesn't exist returns NULL
-char* get_device_row(char* id) {
+void get_device_row(char* id, char* row_copy) {
 FILE *fp = fopen(".registry.txt", "r");
     //checks if file is not empty
     if (fp != NULL) {
@@ -415,20 +418,20 @@ FILE *fp = fopen(".registry.txt", "r");
         //iterates through the rows of the file
         while (fgets(row, sizeof(row), fp) != NULL) {
             //copies the row to avoid modifying the original string
-            char row_copy[200];
+            
             strcpy(row_copy, row);
             //tokenizes the row to get the id of the device
             char* current_id = strtok(row_copy, ", ");
             //checks if the id of the device is the same as the one passed as argument
             if (current_id != NULL && strcmp(current_id, id) == 0) {
                 //if it is, returns the row
-                return row_copy;
+                return;
             }
         }
         fclose(fp);
-        return NULL; // id not found
+        return; // id not found
     } else{
-        printf("error in opening registry file \n");
-        return NULL;
+        perror("error in opening registry file \n");
+        return;
     }
 }

@@ -52,17 +52,20 @@ int createProcessFridge(int num){
         while(1){
             memset(buf, 0, sizeof(buf));
             int bytes_read = read(pipe, buf, sizeof(buf));
+            char info[100];
             if(bytes_read > 0){
                 command = getCommand(buf, id, pos, child_id);
 
                 switch(command){
-                    case 6:
+                    case CHANGE_PARENT_COMMAND:
                         fridge.registry.parent_id = atoi(id);
                         break;
                     case SELF_INFO_COMMAND:
                         printf("got in fridge self info command \n");
-                        char* info = self_info_command(&fridge);
-                        write(controller_pipename, info, strlen(info) + 1);
+                        fridge_info_command(&fridge, info, sizeof(info));
+                        if(strcmp(info, "") != 0){
+                            write(controller_pipename, info, strlen(info) + 1);
+                        }                      
                         break;
                     default:
                         break;
@@ -74,9 +77,8 @@ int createProcessFridge(int num){
     }
 }
 
-char* self_info_command(fridge* current_fridge){
-    char info[100];
-    snprintf(info, sizeof(info),
+void fridge_info_command(fridge* current_fridge, char* info, size_t size){
+    snprintf(info, size,
         "State: %d Switch: %d Registry: time_open=%d perc=%d temp=%d thermostat=%d id=%d parent_id=%d",
         current_fridge->state,
         current_fridge->switches,
@@ -86,5 +88,4 @@ char* self_info_command(fridge* current_fridge){
         current_fridge->registry.thermostat,
         current_fridge->registry.id,
         current_fridge->registry.parent_id);
-    return info;
 }

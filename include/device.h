@@ -18,6 +18,8 @@ int checkSuccess(int fd[], pid_t pid);
 
 int createPipe(int num, char* pipename, size_t size);
 
+void child_info_command(char* pipename_child, char* child_id, char* response, size_t size);
+
 int getCommand(char* buf, char* id, char* pos, char* child_id);
 
 

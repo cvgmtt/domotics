@@ -50,17 +50,20 @@ int createProcessWindow(int num){
         while(1){
             memset(buf, 0, sizeof(buf));
             int bytes_read = read(pipe, buf, sizeof(buf));
+            char info [100];
             if(bytes_read > 0){
                 command = getCommand(buf, id, pos, child_id);
 
                 switch(command){
-                    case 6:
+                    case CHANGE_PARENT_COMMAND:
                         window.registry.parent_id = atoi(id);
                         break;
                     case SELF_INFO_COMMAND:
                         printf("got in window self info command \n");
-                        char* info = self_info_command(&window);
-                        write(controller_pipename, info, strlen(info) + 1);
+                        window_info_command(&window, info, sizeof(info));
+                        if(strcmp(info, "") != 0){
+                            write(controller_pipename, info, strlen(info) + 1);
+                        }                        
                         break;
                     default:
                         break;
@@ -72,13 +75,11 @@ int createProcessWindow(int num){
     }
 }
 
-char* self_info_command(window* current_window){
-    char info[100];
-    snprintf(info, sizeof(info),
+void window_info_command(window* current_window, char* info, size_t size){
+    snprintf(info, size,
         "State: %d Switch: %d Time: %.2f Parent: %d",
         current_window->state,
         current_window->switches,
         current_window->registry.time_open,
         current_window->registry.parent_id);
-    return info;
 }
