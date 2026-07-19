@@ -63,7 +63,9 @@ int createProcessBulb(int num){
                         printf("got in bulb self info command \n");
                         bulb_info_command(&bulb, info, sizeof(info));
                         if(strcmp(info, "") != 0){
-                            write(controller_pipename, info, strlen(info) + 1);
+                            int controller_pipe = open(controller_pipename, O_RDWR);
+                            write(controller_pipe, info, strlen(info) + 1);
+                            close(controller_pipe);
                         }
                         break;
                     default:
@@ -78,7 +80,7 @@ int createProcessBulb(int num){
 
 void bulb_info_command(bulb* current_bulb, char* info, size_t size){
     snprintf(info, size,
-        "State: %d Switch: %d Time: %.2f Parent: %d",
+        "State: %d Switch: %d Time: %d Parent: %d",
         current_bulb->state,
         current_bulb->switches,
         current_bulb->registry.time,

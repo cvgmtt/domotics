@@ -62,7 +62,9 @@ int createProcessWindow(int num){
                         printf("got in window self info command \n");
                         window_info_command(&window, info, sizeof(info));
                         if(strcmp(info, "") != 0){
-                            write(controller_pipename, info, strlen(info) + 1);
+                            int controller_pipe = open(controller_pipename, O_RDWR);
+                            write(controller_pipe, info, strlen(info) + 1);
+                            close(controller_pipe);
                         }                        
                         break;
                     default:
@@ -77,7 +79,7 @@ int createProcessWindow(int num){
 
 void window_info_command(window* current_window, char* info, size_t size){
     snprintf(info, size,
-        "State: %d Switch: %d Time: %.2f Parent: %d",
+        "State: %d Switch: %d Time: %d Parent: %d",
         current_window->state,
         current_window->switches,
         current_window->registry.time_open,

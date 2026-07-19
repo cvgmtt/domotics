@@ -64,7 +64,9 @@ int createProcessFridge(int num){
                         printf("got in fridge self info command \n");
                         fridge_info_command(&fridge, info, sizeof(info));
                         if(strcmp(info, "") != 0){
-                            write(controller_pipename, info, strlen(info) + 1);
+                            int controller_pipe = open(controller_pipename, O_RDWR);
+                            write(controller_pipe, info, strlen(info) + 1);
+                            close(controller_pipe);                            
                         }                      
                         break;
                     default:

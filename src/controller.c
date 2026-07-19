@@ -394,7 +394,7 @@ void get_info(char* id, char* info) {
         }
         //read response from the pipe of controller and return it
         char response[100]; 
-        int controller_pipe = open(controller_pipename, O_RDONLY | O_NONBLOCK);
+        int controller_pipe = open(controller_pipename, O_RDWR);
         ssize_t bytes_read = read(controller_pipe, response, sizeof(response) - 1);
         close(controller_pipe);
         if (bytes_read >= 0) {
