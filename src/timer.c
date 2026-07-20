@@ -69,8 +69,14 @@ int createProcessTimer(int num){
                     case SELF_INFO_COMMAND:
                         timer_info_command(&timer, info, sizeof(info));
                         if(strcmp(info, "") != 0){
-                            int controller_pipe = open(controller_pipename, O_WRONLY | O_NONBLOCK);
-                            write(controller_pipe, info, strlen(info) + 1);
+                            int controller_pipe = open(controller_pipename, O_WRONLY);
+                            if (controller_pipe < 0) {
+                                perror("open controller pipe");
+                                break;
+                            }
+                            if (write(controller_pipe, info, strlen(info) + 1) < 0) {
+                                perror("write controller pipe");
+                            }
                             close(controller_pipe);
                         }                        
                         break;

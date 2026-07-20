@@ -47,9 +47,8 @@ int createProcessHub(int num){
         char pos[10];
         char child_id[10];
         char pipename_child[20];
-        char controller_pipename[20];
+        char controller_pipename[20] = "/tmp/domotics_0";
         char pipename_parent[20];
-        snprintf(controller_pipename, sizeof(controller_pipename), "/tmp/domotics_0");
 
         while(1){
             memset(buf, 0, sizeof(buf));
@@ -87,9 +86,16 @@ int createProcessHub(int num){
                     
                     case SELF_INFO_COMMAND:
                         hub_info_command(&hub, info, sizeof(info));
-                        if(strcmp(info, "") != 0){
-                            int controller_pipe = open(controller_pipename, O_WRONLY | O_NONBLOCK);
-                            write(controller_pipe, info, strlen(info) + 1);
+                        if(strcmp(info, "") != 0 && strcmp(info, "\0") != 0){
+                            int controller_pipe = open(controller_pipename, O_WRONLY);
+                            if (controller_pipe < 0) {
+                                perror("open controller pipe");
+                                break;
+                            }
+                            if (write(controller_pipe, info, strlen(info) + 1) < 0) {
+                                perror("write controller pipe");
+                            }
+                            printf("message sent back to controller\n");
                             close(controller_pipe);
                         }
                         break;
@@ -112,9 +118,9 @@ int createProcessHub(int num){
 void hub_info_command(hub* current_hub, char* info, size_t size){
     char registry [100];
     hub_registry_info(current_hub, registry, sizeof(registry));
-    //if the string of registry info is NULL, make it contain an error message
-    if(registry == NULL){
-        perror("error reading registry");
+    //if the string of registry info is empty, make it contain an error message
+    if(registry[0] == '\0'){
+        strcpy(registry, "error reading registry");
         return;
     }
     //formats the info as "State: <state> Switch: <switches> Registry: <registry info>"
@@ -123,6 +129,8 @@ void hub_info_command(hub* current_hub, char* info, size_t size){
         current_hub->state,
         current_hub->switches,
         registry );
+    //debug
+    printf("hub info are created\n");
     }
  
 void hub_registry_info(hub* current_hub, char* registry, size_t size){
@@ -145,4 +153,6 @@ void hub_registry_info(hub* current_hub, char* registry, size_t size){
         current_hub->registry.parent_id,
         current_hub->registry.child_num,
         childs);
+    //debug
+    printf("registry info are created\n");
 }
