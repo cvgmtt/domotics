@@ -39,9 +39,9 @@ int createProcessFridge(int num){
         fprintf(fp,"%d, %d, Fridge, 0, \n", fridge.registry.id, child_pid_int);
         fclose(fp);
 
-        //pipe of the controller device to send the info of the bulb when requested
+        //pipe of the controller device to send the info of the fridge when requested
         char controller_pipename[20];
-        snprintf(controller_pipename, sizeof(controller_pipename), "/tmp/domotics_%d",fridge.registry.parent_id);
+        snprintf(controller_pipename, sizeof(controller_pipename), "/tmp/domotics_0");
 
 
         char buf[50];
@@ -53,6 +53,7 @@ int createProcessFridge(int num){
             memset(buf, 0, sizeof(buf));
             int bytes_read = read(pipe, buf, sizeof(buf));
             char info[100];
+
             if(bytes_read > 0){
                 command = getCommand(buf, id, pos, child_id);
 
@@ -63,7 +64,7 @@ int createProcessFridge(int num){
                     case SELF_INFO_COMMAND:
                         printf("got in fridge self info command \n");
                         fridge_info_command(&fridge, info, sizeof(info));
-                        if(strcmp(info, "") != 0){
+                        if(strlen(info) > 0){
                             int controller_pipe = open(controller_pipename, O_RDWR);
                             write(controller_pipe, info, strlen(info) + 1);
                             close(controller_pipe);                            

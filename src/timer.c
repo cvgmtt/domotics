@@ -43,6 +43,7 @@ int createProcessTimer(int num){
         char child_id[10];
         char pipename_child[20];
         char controller_pipename[20];
+        char pipename_parent[20];
         snprintf(controller_pipename, sizeof(controller_pipename), "/tmp/domotics_0");
 
         while(1){
@@ -76,12 +77,8 @@ int createProcessTimer(int num){
 
                     case CHILD_INFO_COMMAND:
                         snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%s", child_id);
-                        child_info_command(pipename_child, child_id, info, sizeof(info));
-                        if(info != NULL){
-                            int controller_pipe = open(controller_pipename, O_WRONLY | O_NONBLOCK);
-                            write(controller_pipe, info, strlen(info) + 1);
-                            close(controller_pipe);
-                        }                        
+                        snprintf(pipename_parent, sizeof(pipename_parent), "/tmp/domotics_%d", timer.registry.id);
+                        child_info_command(pipename_child, pipename_parent, info, sizeof(info));
                         break;
                     
                     default:
@@ -131,4 +128,3 @@ void timer_registry_info(timer* current_timer,  char* info, size_t size){
         current_timer->registry.child_id
     );
 }
-

@@ -56,7 +56,7 @@ int main(){
                         } else{
                             controller.registry.num++;
                         }
-                    } else if(strcmp(token, "bulb") == 0){
+                       } else if(strcmp(token, "bulb") == 0){
                         if(createProcessBulb(controller.registry.num) == FAILURE){
                             perror("failed to create bulb device");
                         } else{
@@ -309,7 +309,7 @@ int link_command(char* child_id, char* parent_id){
 
     return SUCCESS;
 }
-//function to find the control device in case an interaction device has one and to check wether the control device selected is full or not
+
 int check_parents(char* parent_to_change, char* child_id, char* parent_id){
     int result = CONTROL_DEVICE_INCOMPLETE;
     FILE* fp_scan = fopen(".registry.txt", "r");
@@ -404,6 +404,7 @@ void get_info(char* id, char* info) {
         close(controller_pipe);
         if (bytes_read >= 0) {
             response[bytes_read] = '\0'; // Null-terminate the string
+            strcpy(info, response);
         } 
         // return the response string
         return; 

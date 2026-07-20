@@ -48,22 +48,23 @@ int createPipe(int num, char* pipename, size_t size){
     };
 }
 
-//gets the info of a child of the timer and returns it as a string
-void child_info_command(char* pipename_child, char* child_id, char* response, size_t size){
+//gets the info of a child and returns it as a string
+void child_info_command(char* pipename_child, char* pipename_parent, char* response, size_t size){
     //opens the pipe of the child and sends the command to get its info
-    snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%s", child_id);
-    int child_pipe = open(pipename_child, O_WRONLY | O_NONBLOCK);
+    int child_pipe = open(pipename_child, O_RDWR);
+    //int parent_pipe = open(pipename_parent, O_RDONLY);
     write(child_pipe, "self_info", strlen("self_info") + 1);
     close(child_pipe);
-    //reads the response from the child and returns it
-    ssize_t bytes_read = read(child_pipe, response, size - 1);
-    if(bytes_read >= 0){ 
-        response[bytes_read] = '\0'; // Null-terminate the string
-    } else {
-        // handle empty response case
-       perror("No response received from child \n");
-       return;
-    }
+    //reads the response from the pipe and returns it
+    //ssize_t bytes_read = read(parent_pipe, response, size - 1);
+    // close(parent_pipe);
+    // if(bytes_read >= 0){ 
+    //     response[bytes_read] = '\0'; // Null-terminate the string
+    // } else {
+    //     // handle empty response case
+    //    perror("No response received from child \n");
+    //    return;
+    // }
 }
 
 int getCommand(char* buf, char* id, char* pos, char* child_id){

@@ -37,9 +37,9 @@ int createProcessWindow(int num){
         fprintf(fp,"%d, %d, Window, 0, \n", window.registry.id, child_pid_int);
         fclose(fp);
 
-        //pipe of the controller device to send the info of the bulb when requested
+        //pipe of the controller device to send the info of the window when requested
         char controller_pipename[20];
-        snprintf(controller_pipename, sizeof(controller_pipename), "/tmp/domotics_%d",window.registry.parent_id);
+        snprintf(controller_pipename, sizeof(controller_pipename), "/tmp/domotics_0");
 
 
         char buf[50];
@@ -51,6 +51,7 @@ int createProcessWindow(int num){
             memset(buf, 0, sizeof(buf));
             int bytes_read = read(pipe, buf, sizeof(buf));
             char info [100];
+
             if(bytes_read > 0){
                 command = getCommand(buf, id, pos, child_id);
 

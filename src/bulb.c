@@ -39,7 +39,7 @@ int createProcessBulb(int num){
 
         //pipe of the controller device to send the info of the bulb when requested
         char controller_pipename[20];
-        snprintf(controller_pipename, sizeof(controller_pipename), "/tmp/domotics_%d",bulb.registry.parent_id);
+        snprintf(controller_pipename, sizeof(controller_pipename), "/tmp/domotics_0");
 
         char buf[50];        
         int command;
@@ -51,6 +51,7 @@ int createProcessBulb(int num){
             memset(buf, 0, sizeof(buf));
             int bytes_read = read(pipe, buf, sizeof(buf));
             char info[100];
+
             if(bytes_read > 0){
                 printf("%s \n", buf);
                 command = getCommand(buf, id, pos, child_id);
