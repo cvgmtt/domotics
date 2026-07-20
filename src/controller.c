@@ -353,10 +353,15 @@ int check_parents(char* parent_to_change, char* child_id, char* parent_id){
 //function to get the infos of a device given its id
 //if it doesn't exist or is an interaction device without a parent returns NULL
 void get_info(char* id, char* info) {
+    //debug
+    printf("got into get_info\n");
     //call get_device_row to find the row of registry.txt corresponding to the device with the given id
     char row[200];
     get_device_row(id, row);
-    if (row != NULL) {
+    if (strcmp(row, "\0") != 0) {
+        printf("is row empty? %s\n", strcmp(row, "\0") == 0 ? "true" : "false");
+        //debug
+        printf("got the row and is not null");
         //copy the row to avoid modifying the original string
         char row_copy[30];
         strcpy(row_copy, row);
@@ -411,24 +416,41 @@ void get_info(char* id, char* info) {
 
 //searches the registry for the row corresponding to the device with the given id and returns it, if it doesn't exist returns NULL
 void get_device_row(char* id, char* row_copy) {
-FILE *fp = fopen(".registry.txt", "r");
+    //debug
+    printf("got into get_device_row\n");
+
+    FILE *fp = fopen(".registry.txt", "r");
+    printf("opened registry file \n");
+
+    strcpy(row_copy, "\0"); // Initialize row_copy to an empty string
+
     //checks if file is not empty
     if (fp != NULL) {
-        char row[30];
+        //debug
+        printf("registry aperto\n");
+        char row[200];
         //iterates through the rows of the file
         while (fgets(row, sizeof(row), fp) != NULL) {
+            //debug
+            printf("got a row: %s\n", row);
             //copies the row to avoid modifying the original string
+            char current_row[200];
+            strcpy(current_row, row);
             
-            strcpy(row_copy, row);
             //tokenizes the row to get the id of the device
-            char* current_id = strtok(row_copy, ", ");
+            char* current_id = strtok(current_row, ", ");
             //checks if the id of the device is the same as the one passed as argument
             if (current_id != NULL && strcmp(current_id, id) == 0) {
-                //if it is, returns the row
+                printf("device found with id %s \n", id);
+                //copy the row to the output parameter and return
+                strcpy(row_copy, row);
+                fclose(fp);
+                printf("closed registry file \n");
                 return;
             }
         }
         fclose(fp);
+        printf("id not found\n");
         return; // id not found
     } else{
         perror("error in opening registry file \n");
