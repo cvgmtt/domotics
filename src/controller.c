@@ -41,29 +41,30 @@ int main(){
         printf("Enter the desired command: ");
         fflush(stdout);
 
-        FD_ZERO(&read_fds);
-        FD_SET(STDIN_FILENO, &read_fds);
-        FD_SET(controller_pipe, &read_fds);
+            FD_ZERO(&read_fds);
+            FD_SET(STDIN_FILENO, &read_fds);
+            FD_SET(controller_pipe, &read_fds);
 
-        if (select(max_fd + 1, &read_fds, NULL, NULL, NULL) < 0) {
-            continue; 
-        }
-
-        if (FD_ISSET(controller_pipe, &read_fds)) {
-            char buffer[256];
-            memset(buffer, 0, sizeof(buffer));
-            int bytes_read = read(controller_pipe, buffer, sizeof(buffer));
-            if (bytes_read > 0) {
-                if (strncmp(buffer, "del ", 4) == 0) {
-                    char* id_to_del = buffer + 4;
-                    delete_device_from_registry(id_to_del);
-                    printf("\nDevice %s deleted successfully.\n", id_to_del);
-                } else {
-                    printf("\n%s\n", buffer);
-                }
+            if (select(max_fd + 1, &read_fds, NULL, NULL, NULL) < 0) {
+                continue; 
             }
-            continue;
-        }
+
+            if (FD_ISSET(controller_pipe, &read_fds)) {
+                char buffer[256];
+                memset(buffer, 0, sizeof(buffer));
+                int bytes_read = read(controller_pipe, buffer, sizeof(buffer));
+                
+                if (bytes_read == sizeof(buffer)) {
+                    if (strncmp(buffer, "del ", 4) == 0) {
+                        char* id_to_del = buffer + 4;
+                        delete_device_from_registry(id_to_del);
+                        printf("\nDevice %s deleted successfully.\n", id_to_del);
+                    } else if (strlen(buffer) > 0) {
+                        printf("\n%s\n", buffer);
+                    }
+                }
+                continue;
+            }
 
         if (FD_ISSET(STDIN_FILENO, &read_fds)) {
             char terminal_input[30];
@@ -484,17 +485,17 @@ void get_info(char* id, char* info) {
                 close(parent_pipe);
             } 
         }
-        //read response from the pipe of controller and return it
-        char response[512]; 
+
+        char response[256];
+        memset(response, 0, sizeof(response)); 
         int controller_pipe = open(controller_pipename, O_RDONLY);
         if (controller_pipe < 0) {
             perror("error opening controller pipe");
             return;
         }
-        ssize_t bytes_read = read(controller_pipe, response, sizeof(response) - 1);
+        ssize_t bytes_read = read(controller_pipe, response, sizeof(response));
         printf("reading response\n");
-        if (bytes_read >= 0) {
-            response[bytes_read] = '\0'; // Null-terminate the string
+        if (bytes_read == sizeof(response)) {
             strcpy(info, response);
         } else {
             strcpy(info, "\0");
@@ -519,11 +520,8 @@ void get_device_row(char* id, char* row_copy) {
     FILE *fp = fopen(".registry.txt", "r");
     printf("opened registry file \n");
 
-    strcpy(row_copy, "\0"); // Initialize row_copy to an empty string
-
-    //checks if file is not empty
+    strcpy(row_copy, "\0"); 
     if (fp != NULL) {
-        //debug
         printf("registry aperto\n");
         char row[200];
         //iterates through the rows of the file
@@ -548,7 +546,7 @@ void get_device_row(char* id, char* row_copy) {
         }
         fclose(fp);
         printf("id not found\n");
-        return; // id not found
+        return; 
     } else{
         perror("error in opening registry file \n");
         return;
@@ -613,10 +611,10 @@ int del_command(char* id){
     if(strlen(row) > 0){
         char row_copy[256];
         strcpy(row_copy, row);
-        strtok(row_copy, ", "); // id
-        strtok(NULL, ", "); // pid
+        strtok(row_copy, ", "); 
+        strtok(NULL, ", "); 
         char pipename[20];
-        char* type = strtok(NULL, ", "); // type
+        char* type = strtok(NULL, ", "); 
         char* parent_id = strtok(NULL, ", ");
         char msg[20];
         if(strcmp(type, "Hub") == 0 || strcmp(type, "Timer") == 0 || strcmp(parent_id, "0") == 0){

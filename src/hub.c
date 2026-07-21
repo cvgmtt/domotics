@@ -2,7 +2,7 @@
 
 hub createHub(){
     hub hub;
-    hub.state = 1; //capisci se va bene
+    hub.state = 1;
     hub.switches = 1;
     hub.registry.child_num = 0;
     hub.registry.parent_id = 0;
@@ -15,7 +15,7 @@ hub createHub(){
 
 int createProcessHub(int num){
     hub hub = createHub();
-    int fd[2]; // fd[0] is the read end, fd[1] is the write end
+    int fd[2]; 
     if (pipe(fd) == -1) { 
         perror("could not open pipe"); return FAILURE; 
     }
@@ -34,8 +34,6 @@ int createProcessHub(int num){
 
         int pipe = open(pipename, O_RDWR);
   
-
-
         FILE* fp = initDevice(fd, pipe);
         pid_t child_pid = getpid();
         int child_pid_int = (int) child_pid;
@@ -55,7 +53,8 @@ int createProcessHub(int num){
             int bytes_read = read(pipe, buf, sizeof(buf));
             if(bytes_read > 0){
                 command = getCommand(buf, id, pos, child_id);
-                char info[512];
+                char info[256];
+                memset(info, 0, sizeof(info));
                 switch(command){
                     case CHANGE_PARENT_COMMAND:
                         for(int i = 0; i < 20; i++){
@@ -158,7 +157,7 @@ int createProcessHub(int num){
                             printf("couldn't open the pipe of the interaction device to delete it");
                             break;
                         }
-                        //checks
+                        
                         char check_pipename[20];
                         snprintf(check_pipename, sizeof(check_pipename), "/tmp/domotics_%d", hub.registry.id);
                         int check_pipe = open(check_pipename, O_RDONLY | O_NONBLOCK);
@@ -210,7 +209,7 @@ int createProcessHub(int num){
                                 perror("open controller pipe");
                                 break;
                             }
-                            if (write(controller_pipe, info, strlen(info) + 1) < 0) {
+                            if (write(controller_pipe, info, sizeof(info)) < 0) {
                                 perror("write controller pipe");
                             }
                             printf("message sent back to controller\n");
@@ -249,7 +248,7 @@ void hub_info_command(hub* current_hub, char* info, size_t size){
         registry );
     //debug
     printf("hub info are created\n");
-    }
+}
  
 void hub_registry_info(hub* current_hub, char* registry, size_t size){
     char childs[512];

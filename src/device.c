@@ -52,10 +52,10 @@ void kill_device(int id){
     int controller_pipe = open("/tmp/domotics_0", O_WRONLY);
 
     if (controller_pipe >= 0) {
-        char msg[50];
+        char msg[256] = {0};
         snprintf(msg, sizeof(msg), "del %d", id); 
         
-        write(controller_pipe, msg, strlen(msg) + 1);
+        write(controller_pipe, msg, sizeof(msg));
         close(controller_pipe);
         //destroy the named pipe
         char pipename[30];
@@ -77,7 +77,7 @@ int confirm_del(char* pipename_parent){
     }
     return FAILURE;
 }
-//gets the info of a child and returns it as a string
+
 void child_info_command(char* pipename_child, char* pipename_parent, char* response, size_t size){
     //opens the pipe of the child and sends the command to get its info
     int child_pipe = open(pipename_child, O_RDWR);
@@ -136,7 +136,7 @@ int getCommand(char* buf, char* id, char* pos, char* child_id){
                 return INVALID_COMMAND;
             }
             strcpy(id, id_temp);
-            strtok(NULL, " ");  //label
+            strtok(NULL, " ");  
             char* pos_temp = strtok(NULL, " "); 
             if(pos == NULL){
                 return INVALID_COMMAND;

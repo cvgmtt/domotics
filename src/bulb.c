@@ -1,4 +1,4 @@
-#include "../include/bulb.h"
+#include "bulb.h"
 
 bulb createBulb(){
     bulb bulb;
@@ -50,7 +50,8 @@ int createProcessBulb(int num){
         while(1){
             memset(buf, 0, sizeof(buf));
             int bytes_read = read(pipe, buf, sizeof(buf));
-            char info[100];
+            char info[256];
+            memset(info, 0, sizeof(info));
 
             if(bytes_read > 0){
                 printf("%s \n", buf);
@@ -84,12 +85,11 @@ int createProcessBulb(int num){
                                 perror("open controller pipe");
                                 break;
                             }
-                            if (write(controller_pipe, info, strlen(info) + 1) < 0) {
+                            if (write(controller_pipe, info, sizeof(info)) < 0) {
                                 perror("write controller pipe");
                             }
                             close(controller_pipe);
                         }
-                        break;
                         break;
                     default:
                         break;                    

@@ -51,7 +51,8 @@ int createProcessTimer(int num){
             int bytes_read = read(pipe, buf, sizeof(buf));
             if(bytes_read > 0){
                 command = getCommand(buf, id, pos, child_id);
-                char info[100];
+                char info[256];
+                memset(info, 0, sizeof(info));
                 switch (command)
                 {
                     case CHANGE_PARENT_COMMAND:
@@ -74,7 +75,7 @@ int createProcessTimer(int num){
                                 perror("open controller pipe");
                                 break;
                             }
-                            if (write(controller_pipe, info, strlen(info) + 1) < 0) {
+                            if (write(controller_pipe, info, sizeof(info)) < 0) {
                                 perror("write controller pipe");
                             }
                             close(controller_pipe);
@@ -101,7 +102,7 @@ int createProcessTimer(int num){
                                 printf("couldn't open the pipe of the device to check whether interaction device was deleted");
                                 break;
                             }
-                            //checks whether the child has received to delete command
+                            
                             char pipename[20];
                             snprintf(pipename, sizeof(pipename), "/tmp/domotics_%d", timer.registry.id);
                             pipe = open(pipename, O_RDONLY | O_NONBLOCK);
@@ -157,7 +158,7 @@ int createProcessTimer(int num){
                             printf("couldn't open the pipe of the interaction device to delete it");
                             break;
                         }
-                        //checks
+                        
                         char pipename[20];
                         snprintf(pipename, sizeof(pipename), "/tmp/domotics_%d", timer.registry.id);
                         pipe = open(pipename, O_RDONLY | O_NONBLOCK);

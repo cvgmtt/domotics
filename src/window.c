@@ -1,6 +1,4 @@
 #include "window.h"
-#include "time.h"
-#include "return_code.h"
 
 window createWindow(){
     window window;
@@ -50,7 +48,8 @@ int createProcessWindow(int num){
         while(1){
             memset(buf, 0, sizeof(buf));
             int bytes_read = read(pipe, buf, sizeof(buf));
-            char info [100];
+            char info [256];
+            memset(info, 0, sizeof(info));
 
             if(bytes_read > 0){
                 command = getCommand(buf, id, pos, child_id);
@@ -82,7 +81,7 @@ int createProcessWindow(int num){
                                 perror("open controller pipe");
                                 break;
                             }
-                            if (write(controller_pipe, info, strlen(info) + 1) < 0) {
+                            if (write(controller_pipe, info, sizeof(info)) < 0) {
                                 perror("write controller pipe");
                             }
                             close(controller_pipe);
