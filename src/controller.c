@@ -137,8 +137,9 @@ int main(){
                 if(token != NULL){
                     char* id1 = token;
                     char info[100];
+                    info[0] = '\0';
                     get_info(id1, info);
-                    if(strcmp(info, "\0") != 0){
+                    if(info[0] == '\0'){
                         printf("could not get info of the device\n");
                     } else{
                         printf("Info of device with id %s:\n %s \n", id1, info);
@@ -384,7 +385,7 @@ void get_info(char* id, char* info) {
                 return;
             }
             if (write(self_pipe, "self_info", strlen("self_info") + 1) < 0) {
-                perror("write self pipe");
+                perror("error writing to self pipe");
                 close(self_pipe);
                 return;
             }
@@ -395,36 +396,33 @@ void get_info(char* id, char* info) {
             char* parent = strtok(NULL, ", "); // parent
             //handle case where parent is 0, which means is an interaction device without a parent
             if(strcmp(parent, "0") == 0){
-                printf("Device with id %s is an interaction device without a parent, cannot get info.\n", id);
-                //send message directly to the device
+                printf("Device with id %s is an interaction device without a parent\n", id);
+                //send message directly to the device so it reports its own info
                 snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", id);
-                int parent_pipe = open(pipename, O_WRONLY);
-                if (parent_pipe < 0) {
-                    perror("open parent pipe");
+                int child_pipe = open(pipename, O_WRONLY);
+                if (child_pipe < 0) {
+                    perror("open child pipe");
                     return;
                 }
-                char message[30];
-                snprintf(message, sizeof(message), "child_info %s", id);
-                if (write(parent_pipe, message, strlen(message) + 1) < 0) {
-                    perror("write parent pipe");
-                    close(parent_pipe);
+                if (write(child_pipe, "self_info", strlen("self_info") + 1) < 0) {
+                    perror("error writing to child pipe");
+                    close(child_pipe);
                     return;
                 }
                 printf("message sent\n");
-                close(parent_pipe);
-                return;
+                close(child_pipe);
             }else{
                 //send message to the parent to get the info of the child
                 snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", parent);
                 int parent_pipe = open(pipename, O_WRONLY);
                 if (parent_pipe < 0) {
-                    perror("open parent pipe");
+                    perror("error opening parent pipe");
                     return;
                 }
                 char message[30];
                 snprintf(message, sizeof(message), "child_info %s", id);
                 if (write(parent_pipe, message, strlen(message) + 1) < 0) {
-                    perror("write parent pipe");
+                    perror("error writing to parent pipe");
                     close(parent_pipe);
                     return;
                 }
@@ -436,7 +434,7 @@ void get_info(char* id, char* info) {
         char response[100]; 
         int controller_pipe = open(controller_pipename, O_RDONLY);
         if (controller_pipe < 0) {
-            perror("open controller pipe");
+            perror("error opening controller pipe");
             return;
         }
         ssize_t bytes_read = read(controller_pipe, response, sizeof(response) - 1);
@@ -451,7 +449,8 @@ void get_info(char* id, char* info) {
         close(controller_pipe); 
         return; 
     } else {
-        //id does not exist in the registry, return NULL
+        //id does not exist in the registry, return empty string
+        strcpy(info, "\0");
         printf("Device with id %s does not exist in the registry.\n", id);
         
         return;
