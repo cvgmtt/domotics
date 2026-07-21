@@ -47,12 +47,15 @@ int createProcessHub(int num){
         char pos[10];
         char child_id[10];
         char pipename_child[20];
+        char controller_pipename[20] = "/tmp/domotics_0";
+        char pipename_parent[20];
+
         while(1){
             memset(buf, 0, sizeof(buf));
             int bytes_read = read(pipe, buf, sizeof(buf));
             if(bytes_read > 0){
                 command = getCommand(buf, id, pos, child_id);
-
+                char info[512];
                 switch(command){
                     case CHANGE_PARENT_COMMAND:
                         for(int i = 0; i < 20; i++){
@@ -73,9 +76,10 @@ int createProcessHub(int num){
                     case CHANGE_CHILD_COMMAND:
                         for(int i = 0; i < 20; i++){
                             if(hub.registry.child_id[i] == -1){
-                                hub.registry.child_id[i] = atoi(id);
+                                hub.registry.child_id[i] = atoi(child_id);
                                 hub.registry.child_switches[i] = hub.switches;
                                 hub.registry.child_num++;
+                                printf("new child_num%d \n", hub.registry.child_num);
                                 break;
                             }
                         }
@@ -197,6 +201,26 @@ int createProcessHub(int num){
                             printf("couldn't open the pipe of the device to check whether interaction device was deleted");
                             break;
                         }
+                    case SELF_INFO_COMMAND:
+                        hub_info_command(&hub, info, sizeof(info));
+                        if(strcmp(info, "") != 0 && strcmp(info, "\0") != 0){
+                            int controller_pipe = open(controller_pipename, O_WRONLY);
+                            if (controller_pipe < 0) {
+                                perror("open controller pipe");
+                                break;
+                            }
+                            if (write(controller_pipe, info, strlen(info) + 1) < 0) {
+                                perror("write controller pipe");
+                            }
+                            printf("message sent back to controller\n");
+                            close(controller_pipe);
+                        }
+                        break;
+
+                    case CHILD_INFO_COMMAND:
+                        snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%s", child_id);
+                        snprintf(pipename_parent, sizeof(pipename_parent), "/tmp/domotics_%d", hub.registry.id);
+                        child_info_command(pipename_child, pipename_parent, info, sizeof(info));
                         break;
                     default:
                         break;
@@ -206,4 +230,51 @@ int createProcessHub(int num){
     } else{
         return checkSuccess(fd, pid);
     }
+}
+
+void hub_info_command(hub* current_hub, char* info, size_t size){
+    char registry[512];
+    hub_registry_info(current_hub, registry, sizeof(registry));
+    //if the string of registry info is empty, make it contain an error message
+    if(registry[0] == '\0'){
+        strcpy(registry, "error reading registry");
+        return;
+    }
+    //formats the info as "State: <state> Switch: <switches> Registry: <registry info>"
+    snprintf(info, size,
+        "State: %d Switch: %d Registry: %s",
+        current_hub->state,
+        current_hub->switches,
+        registry );
+    //debug
+    printf("hub info are created\n");
+    }
+ 
+void hub_registry_info(hub* current_hub, char* registry, size_t size){
+    char childs[512];
+    childs[0] = '\0';
+    int len = 0;
+
+    //iterate over the full array so the output reflects which slots are occupied
+    for (int i = 0; i < 20; i++) {
+        if (i > 0) {
+            len += snprintf(childs + len, sizeof(childs) - len, ",");
+        }
+        if (current_hub->registry.child_id[i] != -1) {
+            len += snprintf(childs + len, sizeof(childs) - len, "%d", current_hub->registry.child_id[i]);
+        }else{
+            len += snprintf(childs + len, sizeof(childs) - len, "0");
+        }
+    }
+
+    
+    //formats the info as "id=<id parent_id=<parent_id> child_num=<child_num> children=[<string of childs>]"
+    snprintf(registry, size,
+        "id=%d parent_id=%d child_num=%d children=[%s]",
+        current_hub->registry.id,
+        current_hub->registry.parent_id,
+        current_hub->registry.child_num,
+        childs);
+    //debug
+    printf("registry info are created\n");
 }

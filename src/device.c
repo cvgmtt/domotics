@@ -77,6 +77,12 @@ int confirm_del(char* pipename_parent){
     }
     return FAILURE;
 
+//gets the info of a child and returns it as a string
+void child_info_command(char* pipename_child, char* pipename_parent, char* response, size_t size){
+    //opens the pipe of the child and sends the command to get its info
+    int child_pipe = open(pipename_child, O_RDWR);
+    write(child_pipe, "self_info", strlen("self_info") + 1);
+    close(child_pipe);
 }
 
 int getCommand(char* buf, char* id, char* pos, char* child_id){
@@ -89,16 +95,22 @@ int getCommand(char* buf, char* id, char* pos, char* child_id){
                 strcpy(id, id_temp);
                 if(strcmp(token, "parent") == 0){
                     printf("got in get command \n");
-                    token = strtok(NULL, " ");
+                    id_temp = strtok(NULL, " ");
                     //in case the interaction device already had a controller device parent
-                    if(token != NULL){
+                    if(id_temp != NULL){
                         strcpy(child_id, token);
                         return CHANGE_PARENT_COMMAND;
                     }
                     return CHANGE_PARENT_COMMAND;
                 } else if(strcmp(token, "child") == 0){
                     printf("child \n");
-                    return CHANGE_CHILD_COMMAND;
+                    if(id_temp != NULL){
+                        strcpy(child_id, id_temp);
+                        return CHANGE_CHILD_COMMAND;
+                    } else{
+                        return INVALID_COMMAND;
+                    }
+                    
                 } else {
                     return INVALID_COMMAND;
                 }
@@ -131,13 +143,23 @@ int getCommand(char* buf, char* id, char* pos, char* child_id){
             }
             strcpy(pos, pos_temp);
             return SWITCH_COMMAND;
-        }else if(strcmp(token, "info") == 0){
-            char* id_temp = strtok(NULL, " ");
-            if(id_temp == NULL){
+        } else if(strcmp(token, "self_info") == 0){
+            char* next = strtok(NULL, " ");
+            if(next != NULL){
                 return INVALID_COMMAND;
             }
-            strcpy(id, id_temp);
-            return INFO_COMMAND;
+            return SELF_INFO_COMMAND;
+        } else if(strcmp(token, "child_info") == 0){
+            char* child_id_temp = strtok(NULL, " ");
+            if(child_id_temp == NULL){
+                return INVALID_COMMAND;
+            }
+            strcpy(child_id, child_id_temp);
+            char* extra = strtok(NULL, " ");
+            if(extra != NULL){
+                return INVALID_COMMAND;
+            }
+            return CHILD_INFO_COMMAND;
         } else {
             return INVALID_COMMAND;
         }

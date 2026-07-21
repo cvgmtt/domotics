@@ -42,12 +42,16 @@ int createProcessTimer(int num){
         char pos[10];
         char child_id[10];
         char pipename_child[20];
+        char controller_pipename[20];
+        char pipename_parent[20];
+        snprintf(controller_pipename, sizeof(controller_pipename), "/tmp/domotics_0");
 
         while(1){
             memset(buf, 0, sizeof(buf));
             int bytes_read = read(pipe, buf, sizeof(buf));
             if(bytes_read > 0){
                 command = getCommand(buf, id, pos, child_id);
+                char info[100];
                 switch (command)
                 {
                     case CHANGE_PARENT_COMMAND:
@@ -59,7 +63,28 @@ int createProcessTimer(int num){
                         break;
 
                     case CHANGE_CHILD_COMMAND:
-                        timer.registry.child_id = atoi(id);
+                        timer.registry.child_id = atoi(child_id);
+                        break;
+
+                    case SELF_INFO_COMMAND:
+                        timer_info_command(&timer, info, sizeof(info));
+                        if(strcmp(info, "") != 0){
+                            int controller_pipe = open(controller_pipename, O_WRONLY);
+                            if (controller_pipe < 0) {
+                                perror("open controller pipe");
+                                break;
+                            }
+                            if (write(controller_pipe, info, strlen(info) + 1) < 0) {
+                                perror("write controller pipe");
+                            }
+                            close(controller_pipe);
+                        }                        
+                        break;
+
+                    case CHILD_INFO_COMMAND:
+                        snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%s", child_id);
+                        snprintf(pipename_parent, sizeof(pipename_parent), "/tmp/domotics_%d", timer.registry.id);
+                        child_info_command(pipename_child, pipename_parent, info, sizeof(info));
                         break;
                     
                     case SELF_DEL_COMMAND:
@@ -178,4 +203,42 @@ int createProcessTimer(int num){
     } else{
         return checkSuccess(fd, pid);
     }
+}
+
+//gets the info of the timer and returns it as a string
+void timer_info_command(timer* current_timer, char* info, size_t size){
+    char registry[100];
+    timer_registry_info(current_timer, registry, sizeof(registry));
+    //if the string of registry info is NULL, make it contain an error message
+    if(registry == NULL){
+        perror("error reading registry");
+        return;
+    }
+    //formats the info as "State: <state> Switch: <switches> Registry: <registry info>"
+    snprintf(info, size,
+        "State: %d Switch: %d Registry: %s",
+        current_timer->state,
+        current_timer->switches,
+        registry );
+}
+
+//gets the info of the registry of the timer and returns it as a string
+void timer_registry_info(timer* current_timer,  char* info, size_t size){
+    char childs[100];
+    childs[0] = '\0';
+    int len = 0;
+    if(current_timer->registry.child_id == -1){
+        snprintf(childs, sizeof(childs), "0");
+    } else{
+        snprintf(childs, sizeof(childs), "1");        
+    }
+    
+    //formats the info as "id=<id> parent_id=<parent_id> child_num=<child_num> children=[<string of children>]"
+    snprintf(info, size - len,
+        "id=%d parent_id=%d child_num=%s children=[%d]",
+        current_timer->registry.id,
+        current_timer->registry.parent_id,
+        childs,
+        current_timer->registry.child_id
+    );
 }
