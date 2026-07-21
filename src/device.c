@@ -48,23 +48,41 @@ int createPipe(int num, char* pipename, size_t size){
     };
 }
 
+void kill_device(int id){
+    int controller_pipe = open("/tmp/domotics_0", O_WRONLY);
+
+    if (controller_pipe >= 0) {
+        char msg[50];
+        snprintf(msg, sizeof(msg), "del %d", id); 
+        
+        write(controller_pipe, msg, strlen(msg) + 1);
+        close(controller_pipe);
+        //destroy the named pipe
+        char pipename[30];
+        snprintf(pipename, sizeof(pipename), "/tmp/domotics_%d", id);
+        unlink(pipename); 
+
+        exit(SUCCESS);
+    }
+}
+
+int confirm_del(char* pipename_parent){
+    char msg[30];
+    snprintf(msg, sizeof(msg), "received delete command");
+    int pipe = open(pipename_parent, O_WRONLY);
+    if(pipe !=-1){
+        write(pipe, msg, sizeof(msg));
+        close(pipe);
+        return SUCCESS;
+    }
+    return FAILURE;
+
 //gets the info of a child and returns it as a string
 void child_info_command(char* pipename_child, char* pipename_parent, char* response, size_t size){
     //opens the pipe of the child and sends the command to get its info
     int child_pipe = open(pipename_child, O_RDWR);
-    //int parent_pipe = open(pipename_parent, O_RDONLY);
     write(child_pipe, "self_info", strlen("self_info") + 1);
     close(child_pipe);
-    //reads the response from the pipe and returns it
-    //ssize_t bytes_read = read(parent_pipe, response, size - 1);
-    // close(parent_pipe);
-    // if(bytes_read >= 0){ 
-    //     response[bytes_read] = '\0'; // Null-terminate the string
-    // } else {
-    //     // handle empty response case
-    //    perror("No response received from child \n");
-    //    return;
-    // }
 }
 
 int getCommand(char* buf, char* id, char* pos, char* child_id){
@@ -99,25 +117,31 @@ int getCommand(char* buf, char* id, char* pos, char* child_id){
             } else {
                 return INVALID_COMMAND;
             }
-        } else if(strcmp(token, "del") == 0){
+        } else if(strcmp(token, "self_delete") == 0){
             char* id_temp = strtok(NULL, " ");
-            strcpy(id, id_temp);
             if(id_temp == NULL){
                 return INVALID_COMMAND;
             }
-            return DEL_COMMAND;
+            return SELF_DEL_COMMAND;
+        } else if(strcmp(token, "child_delete") == 0){
+            char* id_temp = strtok(NULL, " ");
+            if(id_temp == NULL){
+                return INVALID_COMMAND;
+            }
+            strcpy(child_id, id_temp);
+            return CHILD_DEL_COMMAND;
         } else if(strcmp(token, "switch") == 0){
             char* id_temp = strtok(NULL, " ");
-            strcpy(id, id_temp);
             if(id_temp == NULL){
                 return INVALID_COMMAND;
             }
+            strcpy(id, id_temp);
             strtok(NULL, " ");  //label
             char* pos_temp = strtok(NULL, " "); 
-            strcpy(pos, pos_temp);
             if(pos == NULL){
                 return INVALID_COMMAND;
             }
+            strcpy(pos, pos_temp);
             return SWITCH_COMMAND;
         } else if(strcmp(token, "self_info") == 0){
             char* next = strtok(NULL, " ");

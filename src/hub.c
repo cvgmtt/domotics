@@ -85,6 +85,122 @@ int createProcessHub(int num){
                         }
                         break;
                     
+                    case SELF_DEL_COMMAND:
+                        for(int i = 0; i < 20; i++){
+                            if(hub.registry.child_id[i] != -1){
+                                snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%d", hub.registry.child_id[i]);
+                                char msg[20];
+                                snprintf(msg, sizeof(msg), "self_delete %d", hub.registry.child_id[i]);
+                                int out_pipe = open(pipename_child, O_WRONLY);
+                                if(out_pipe != -1){
+                                    write(out_pipe, msg, sizeof(msg));
+                                    close(out_pipe);
+                                } else{
+                                    printf("couldn't open the pipe of the device to check whether interaction device was deleted");
+                                    continue;
+                                }
+                                
+                                char check_pipename[20];
+                                snprintf(check_pipename, sizeof(check_pipename), "/tmp/domotics_%d", hub.registry.id);
+                                int check_pipe = open(check_pipename, O_RDONLY | O_NONBLOCK);
+                                if(check_pipe != -1){
+                                    fd_set read_fds;
+                                    FD_ZERO(&read_fds);
+                                    FD_SET(check_pipe, &read_fds);
+
+                                    //max timeout
+                                    struct timeval tv;
+                                    tv.tv_sec = 1;
+                                    tv.tv_usec = 0;
+
+                                    int activity = select(check_pipe + 1, &read_fds, NULL, NULL, &tv);
+
+                                    if(activity > 0){
+                                        bytes_read = read(check_pipe, msg, sizeof(msg));
+                                        if (bytes_read > 0){
+                                            close(check_pipe);
+                                            hub.registry.child_id[i] = -1;
+                                            hub.registry.child_switches[i] = -1;
+                                            hub.registry.child_num--;
+                                        } else{
+                                            close(check_pipe);
+                                        }
+                                    } else if (activity == 0){
+                                        close(check_pipe);
+                                        printf("couldn't delete child device, therefore not deleting control device");
+                                    } else{
+                                        close(check_pipe);
+                                    }
+                                } else{
+                                    printf("couldn't open the pipe of the device to check whether interaction device was deleted");
+                                }
+                            }
+                        }
+                        
+                        //if no children kills it immediatly
+                        if(hub.registry.child_num == 0){
+                            kill_device(hub.registry.id);
+                            break;
+                        } else{
+                            printf("couldn't delete all child devices, therefore not deleting control device");
+                            break;
+                        }
+
+                    case CHILD_DEL_COMMAND:
+                        snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%s", child_id);
+                        char msg[20];
+                        snprintf(msg, sizeof(msg), "self_delete %s", child_id);
+                        int out_pipe = open(pipename_child, O_WRONLY);
+                        if(out_pipe != -1){
+                            write(out_pipe, msg, sizeof(msg));
+                            close(out_pipe);
+                        } else{
+                            printf("couldn't open the pipe of the interaction device to delete it");
+                            break;
+                        }
+                        //checks
+                        char check_pipename[20];
+                        snprintf(check_pipename, sizeof(check_pipename), "/tmp/domotics_%d", hub.registry.id);
+                        int check_pipe = open(check_pipename, O_RDONLY | O_NONBLOCK);
+                        if(check_pipe != -1){
+                            fd_set read_fds;
+                            FD_ZERO(&read_fds);
+                            FD_SET(check_pipe, &read_fds);
+
+                            //max timeout
+                            struct timeval tv;
+                            tv.tv_sec = 1;
+                            tv.tv_usec = 0;
+
+                            int activity = select(check_pipe + 1, &read_fds, NULL, NULL, &tv);
+
+                            if(activity > 0){
+                                // interaction device has responded in time
+                                bytes_read = read(check_pipe, msg, sizeof(msg));
+                                if (bytes_read > 0){
+                                    close(check_pipe);
+                                    for(int i = 0; i < 20; i++){
+                                        if(hub.registry.child_id[i] == atoi(child_id)){
+                                            hub.registry.child_id[i] = -1;
+                                            hub.registry.child_switches[i] = -1;
+                                            hub.registry.child_num--;
+                                            break;
+                                        }
+                                    }
+                                }
+                                printf("interaction device deleted successfully");  
+                                break;
+                            } else if (activity == 0){
+                                close(check_pipe);
+                                printf("couldn't delete child device, therefore not deleting control device");
+                                break;
+                            } else{
+                                close(check_pipe);
+                            }
+                        } else{
+                            printf("couldn't open the pipe of the device to check whether interaction device was deleted");
+                            break;
+                        }
                     case SELF_INFO_COMMAND:
                         hub_info_command(&hub, info, sizeof(info));
                         if(strcmp(info, "") != 0 && strcmp(info, "\0") != 0){

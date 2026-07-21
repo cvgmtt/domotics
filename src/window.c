@@ -59,6 +59,19 @@ int createProcessWindow(int num){
                     case CHANGE_PARENT_COMMAND:
                         window.registry.parent_id = atoi(id);
                         break;
+                    case SELF_DEL_COMMAND:
+                        if(window.registry.parent_id != 0){
+                            char pipename_parent[20];
+                            snprintf(pipename_parent, sizeof(pipename_parent), "/tmp/domotics_%d", window.registry.parent_id);
+                            if(confirm_del(pipename_parent) == SUCCESS){
+                                kill_device(window.registry.id);
+                                break;
+                            } else{
+                                printf("error in deleting device with id %d", window.registry.id);
+                                break;
+                            }
+                        }
+                        kill_device(window.registry.id);
                     case SELF_INFO_COMMAND:
                         printf("got in window self info command \n");
                         window_info_command(&window, info, sizeof(info));

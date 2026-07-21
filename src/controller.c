@@ -1,7 +1,9 @@
 #include "controller.h"
 #include <string.h>
 #include <stdio.h>
-
+#include <unistd.h>
+#include <sys/select.h>
+#include <fcntl.h>
 
 int main(){
     //initialization of controller
@@ -26,136 +28,175 @@ int main(){
         return FAILURE;
     };
 
+    int controller_pipe = open(pipename, O_RDWR);
+    if (controller_pipe < 0) {
+        perror("error in opening controller pipe \n");
+        return FAILURE;
+    }
+
+    int max_fd = controller_pipe > STDIN_FILENO ? controller_pipe : STDIN_FILENO;
+    fd_set read_fds;
+
     while(1){
-        char terminal_input[30];
         printf("Enter the desired command: ");
-        fgets(terminal_input, 30, stdin);
-        terminal_input[strcspn(terminal_input, "\n")] = '\0';
-        char *token = strtok(terminal_input, " ");
-        pid_t controller_pid = getpid();
-        char controller_pid_string[16];   
-        sprintf(controller_pid_string, "%d", controller_pid);        
-        if(token != NULL){
-            if(strcmp(token, "list") == 0){
-                if(list(controller_pid_string) == FAILURE){
-                    perror("could not open file");
-                };
-            } else if (strcmp(token, "add") == 0){
-                token = strtok(NULL, " ");
-                if(token != NULL){
-                    if(strcmp(token, "hub") == 0){
-                        if(createProcessHub(controller.registry.num) == FAILURE){
-                            perror("failed to create hub device");
-                        } else{
-                            controller.registry.num++;
-                        }
-                        
-                    } else if(strcmp(token, "timer") == 0)  {
-                        if(createProcessTimer(controller.registry.num) == FAILURE){
-                            perror("failed to create timer device");
-                        } else{
-                            controller.registry.num++;
-                        }
-                       } else if(strcmp(token, "bulb") == 0){
-                        if(createProcessBulb(controller.registry.num) == FAILURE){
-                            perror("failed to create bulb device");
-                        } else{
-                            controller.registry.num++;
-                        }
-                    } else if(strcmp(token, "window") == 0){
-                        if(createProcessWindow(controller.registry.num) == FAILURE){
-                            perror("failed to create window device");
-                        } else{
-                            controller.registry.num++;
-                        }
-                    } else if(strcmp(token, "fridge") == 0){
-                        if(createProcessFridge(controller.registry.num) == FAILURE){
-                            perror("failed to create fridge device");
-                        } else{
-                            controller.registry.num++;
-                        }
-                    }
-                } else{
-                    printf("wrong input. add requires just one of these arguments: hub, timer, bulb, window, fridge\n");
+        fflush(stdout);
+
+        FD_ZERO(&read_fds);
+        FD_SET(STDIN_FILENO, &read_fds);
+        FD_SET(controller_pipe, &read_fds);
+
+        if (select(max_fd + 1, &read_fds, NULL, NULL, NULL) < 0) {
+            break;
+        }
+
+        if (FD_ISSET(controller_pipe, &read_fds)) {
+            char buffer[256];
+            memset(buffer, 0, sizeof(buffer));
+            int bytes_read = read(controller_pipe, buffer, sizeof(buffer));
+            if (bytes_read > 0) {
+                if (strncmp(buffer, "del ", 4) == 0) {
+                    char* id_to_del = buffer + 4;
+                    delete_device_from_registry(id_to_del);
+                    printf("\nDevice %s deleted successfully.\n", id_to_del);
+                } else {
+                    printf("\n%s\n", buffer);
                 }
-     
-            } else if(strcmp(token, "del") == 0){
-                token = strtok(NULL, " ");
-                if(token != NULL){
-                    //iterates through ids till you find it
-                    //then delete it
-                } else{             
-                    printf("wrong input. del requires a valid id\n");
-                }
-            } else if(strcmp(token, "link") == 0){
-                token = strtok(NULL, " ");
-                if(token != NULL){
-                    char* child_id = token;
-                    //token = strtok(NULL, " ");
+            }
+            continue;
+        }
+
+        if (FD_ISSET(STDIN_FILENO, &read_fds)) {
+            char terminal_input[30];
+            fgets(terminal_input, 30, stdin);
+            terminal_input[strcspn(terminal_input, "\n")] = '\0';
+            char *token = strtok(terminal_input, " ");
+            pid_t controller_pid = getpid();
+            char controller_pid_string[16];   
+            sprintf(controller_pid_string, "%d", controller_pid);        
+            if(token != NULL){
+                if(strcmp(token, "list") == 0){
+                    if(list(controller_pid_string) == FAILURE){
+                        perror("could not open file");
+                    };
+                } else if (strcmp(token, "add") == 0){
                     token = strtok(NULL, " ");
                     if(token != NULL){
-                        char* parent_id = token;
-                        int result = link_command(child_id, parent_id);
-                        if(result == SUCCESS){
-                            printf("Linked %s with %s \n", child_id, parent_id);
-                        }else if(result == ALREADY_LINKED){
-                            printf("these two devices are already linked \n");
-                        } else if(result == FAILURE){
-                            perror("error in linking");
+                        if(strcmp(token, "hub") == 0){
+                            if(createProcessHub(controller.registry.num) == FAILURE){
+                                perror("failed to create hub device");
+                            } else{
+                                controller.registry.num++;
+                            }
+                            
+                        } else if(strcmp(token, "timer") == 0)  {
+                            if(createProcessTimer(controller.registry.num) == FAILURE){
+                                perror("failed to create timer device");
+                            } else{
+                                controller.registry.num++;
+                            }
+                        } else if(strcmp(token, "bulb") == 0){
+                            if(createProcessBulb(controller.registry.num) == FAILURE){
+                                perror("failed to create bulb device");
+                            } else{
+                                controller.registry.num++;
+                            }
+                        } else if(strcmp(token, "window") == 0){
+                            if(createProcessWindow(controller.registry.num) == FAILURE){
+                                perror("failed to create window device");
+                            } else{
+                                controller.registry.num++;
+                            }
+                        } else if(strcmp(token, "fridge") == 0){
+                            if(createProcessFridge(controller.registry.num) == FAILURE){
+                                perror("failed to create fridge device");
+                            } else{
+                                controller.registry.num++;
+                            }
                         }
                     } else{
-                    printf("wrong input. linking requires two valid ids\n");
-                }
-                    
-                } else{
-                    printf("wrong input. linking requires two valid ids\n");
-                }
-            } else if(strcmp(token, "switch") == 0){
-                token = strtok(NULL, " ");
-                if(token != NULL){
-                    char* id = token;
+                        printf("wrong input. add requires just one of these arguments: hub, timer, bulb, window, fridge\n");
+                    }
+         
+                } else if(strcmp(token, "del") == 0){
                     token = strtok(NULL, " ");
                     if(token != NULL){
-                        char* label = token;
+                        int result = del_command(token);
+                        if (result == SUCCESS){
+                            printf("initiated deletion of the device \n");
+                        }else{
+                            printf("couldn't find the device");
+                        }
+                    } else{             
+                        printf("wrong input. del requires a valid id\n");
+                    }
+                } else if(strcmp(token, "link") == 0){
+                    token = strtok(NULL, " ");
+                    if(token != NULL){
+                        char* child_id = token;
+                        //token = strtok(NULL, " ");
                         token = strtok(NULL, " ");
                         if(token != NULL){
-                            char* pos = token;
-                            //set the switch label of device on/off
-                            //throw errors if you don't find id, don't recognise label or pos
-                        } else {
+                            char* parent_id = token;
+                            int result = link_command(child_id, parent_id);
+                            if(result == SUCCESS){
+                                printf("Linked %s with %s \n", child_id, parent_id);
+                            }else if(result == ALREADY_LINKED){
+                                printf("these two devices are already linked \n");
+                            } else if(result == FAILURE){
+                                perror("error in linking");
+                            }
+                        } else{
+                        printf("wrong input. linking requires two valid ids\n");
+                    }
+                        
+                    } else{
+                        printf("wrong input. linking requires two valid ids\n");
+                    }
+                } else if(strcmp(token, "switch") == 0){
+                    token = strtok(NULL, " ");
+                    if(token != NULL){
+                        char* id = token;
+                        token = strtok(NULL, " ");
+                        if(token != NULL){
+                            char* label = token;
+                            token = strtok(NULL, " ");
+                            if(token != NULL){
+                                char* pos = token;
+                                //set the switch label of device on/off
+                                //throw errors if you don't find id, don't recognise label or pos
+                            } else {
+                                printf("wrong input. switch requires <id> <label> <pos>\n");
+                            }
+                        } else{
                             printf("wrong input. switch requires <id> <label> <pos>\n");
                         }
                     } else{
-                    printf("wrong input. switch requires <id> <label> <pos>\n");
-                }
-                    
-                } else{
-                    printf("wrong input. switch requires <id> <label> <pos>\n");
-                }     
-            } else if(strcmp(token, "info") == 0){
-                token = strtok(NULL, " ");
-                if(token != NULL){
-                    char* id1 = token;
-                    char info[512];
-                    info[0] = '\0';
-                    get_info(id1, info);
-                    if(info[0] == '\0'){
-                        printf("could not get info of the device\n");
+                        printf("wrong input. switch requires <id> <label> <pos>\n");
+                    }     
+                } else if(strcmp(token, "info") == 0){
+                    token = strtok(NULL, " ");
+                    if(token != NULL){
+                        char* id1 = token;
+                        char info[512];
+                        info[0] = '\0'; // Inizializzazione corretta
+                        get_info(id1, info);
+                        if(info[0] == '\0'){
+                            printf("could not get info of the device\n");
+                        } else{
+                            printf("Info of device with id %s:\n %s \n", id1, info);
+                        }
                     } else{
-                        printf("Info of device with id %s:\n %s \n", id1, info);
+                        printf("wrong input. info requires <id>\n");
                     }
                 } else{
-                    printf("wrong input. info requires <id>\n");
+                    printf("please, provide one of these commands:\n");
+                    printf("list, add <device>, del <id>, link <id1> to <id2>, switch <id> <label> <pos>, info <id>\n");                
                 }
-            } else{
-                printf("please, provide one of these commands:\n");
-                printf("list, add <device>, del <id>, link <id1> to <id2>, switch <id> <label> <pos>, info <id>\n");                
-            } 
-        } else{
-            printf("please, provide one of these commands:\n");
-            printf("list, add <device>, del <id>, link <id1> to <id2>, switch <id> <label> <pos>, info <id>\n");
         }
     };
+    
+    close(controller_pipe);
+    return 0;
 }
 
 int list(char* controller_pid_string){
@@ -498,5 +539,90 @@ void get_device_row(char* id, char* row_copy) {
     } else{
         perror("error in opening registry file \n");
         return;
+    }
+}
+
+void delete_device_from_registry(char* id_to_delete) {
+    FILE* fp = fopen(".registry.txt", "r");
+    FILE* temp = fopen("temp.txt", "w");
+    if (fp == NULL || temp == NULL) {
+        if (fp) fclose(fp);
+        if (temp) fclose(temp);
+        return;
+    }
+
+    char row[256];
+    while (fgets(row, sizeof(row), fp) != NULL) {
+        char row_copy[256];
+        strcpy(row_copy, row); 
+        
+        char* current_id = strtok(row_copy, ", ");
+        if (current_id != NULL) {
+            if (strcmp(current_id, id_to_delete) == 0) {
+                continue; 
+            }
+            
+            char* pid_str = strtok(NULL, ", ");
+            char* type_str = strtok(NULL, ", ");
+            char* parent_str = strtok(NULL, ", ");
+            char* children_str = strtok(NULL, "\n"); 
+            
+            if (children_str == NULL) {
+                children_str = "";        
+            }
+
+            if (strcmp(type_str, "Hub") == 0 || strcmp(type_str, "Timer") == 0) {
+                char new_children_str[200] = ""; 
+                char* child_token = strtok(children_str, ", ");
+                while (child_token != NULL) {
+                    if (strcmp(child_token, id_to_delete) != 0) {
+                        strcat(new_children_str, child_token);
+                        strcat(new_children_str, ", ");
+                    }
+                    child_token = strtok(NULL, ", ");
+                }
+                fprintf(temp, "%s, %s, %s, %s, %s\n", current_id, pid_str, type_str, parent_str, new_children_str);
+            } else {
+                fprintf(temp, "%s", row); 
+            }
+        }
+    }
+
+    fclose(fp);
+    fclose(temp);
+    remove(".registry.txt");
+    rename("temp.txt", ".registry.txt");
+}
+
+int del_command(char* id){
+    char row[256];
+    get_device_row(id, row);
+    if(strlen(row) > 0){
+        char row_copy[256];
+        strcpy(row_copy, row);
+        strtok(row_copy, ", "); // id
+        strtok(NULL, ", "); // pid
+        char pipename[20];
+        char* type = strtok(NULL, ", "); // type
+        char* parent_id = strtok(NULL, ", ");
+        char msg[20];
+        if(strcmp(type, "Hub") == 0 || strcmp(type, "Timer") == 0 || strcmp(parent_id, "0") == 0){
+            snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", id);
+            snprintf(msg, sizeof(msg), "self_delete %s", id);
+        } else if(strcmp(parent_id, "0") != 0){
+                snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", parent_id);
+                snprintf(msg, sizeof(msg), "child_delete %s", id);
+        }
+        int pipe = open(pipename, O_WRONLY);
+        if(pipe > 0){
+            write(pipe, msg, sizeof(msg));
+            close(pipe);
+            return SUCCESS;
+        } 
+        printf("couldn't send the delete command");
+        return FAILURE;
+
+    }else{
+        return FAILURE;
     }
 }
