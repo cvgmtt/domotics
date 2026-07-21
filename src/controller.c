@@ -56,7 +56,7 @@ int main(){
                         } else{
                             controller.registry.num++;
                         }
-                    } else if(strcmp(token, "bulb") == 0){
+                       } else if(strcmp(token, "bulb") == 0){
                         if(createProcessBulb(controller.registry.num) == FAILURE){
                             perror("failed to create bulb device");
                         } else{
@@ -136,10 +136,16 @@ int main(){
                 token = strtok(NULL, " ");
                 if(token != NULL){
                     char* id1 = token;
-                    //string* infos = get_info(id1); //returns info of the device with id1, if it doesn't exist, throw an error
-                    //iterates through ids till you find the correct ones, if you don't find them, throw an error
+                    char info[512];
+                    info[0] = '\0';
+                    get_info(id1, info);
+                    if(info[0] == '\0'){
+                        printf("could not get info of the device\n");
+                    } else{
+                        printf("Info of device with id %s:\n %s \n", id1, info);
+                    }
                 } else{
-                    printf("wrong input. info requires a valid id\n");
+                    printf("wrong input. info requires <id>\n");
                 }
             } else{
                 printf("please, provide one of these commands:\n");
@@ -227,7 +233,7 @@ int link_command(char* child_id, char* parent_id){
 
             if (strcmp(current_id, child_id) == 0) {
                 if(strcmp(type_str, "Hub") == 0 || strcmp(type_str, "Timer") == 0){
-                    perror("first id is not an interaction device \n");
+                    printf("first id is not an interaction device \n");
                     return FAILURE;
                 }
                 if(strcmp(parent_to_change, "0") == 0){
@@ -304,7 +310,7 @@ int link_command(char* child_id, char* parent_id){
 
     return SUCCESS;
 }
-//function to find the control device in case an interaction device has one and to check wether the control device selected is full or not
+
 int check_parents(char* parent_to_change, char* child_id, char* parent_id){
     int result = CONTROL_DEVICE_INCOMPLETE;
     FILE* fp_scan = fopen(".registry.txt", "r");
@@ -343,4 +349,154 @@ int check_parents(char* parent_to_change, char* child_id, char* parent_id){
     return result;
     }
     return FAILURE;
+}
+
+//function to get the infos of a device given its id
+//if it doesn't exist or is an interaction device without a parent returns NULL
+void get_info(char* id, char* info) {
+    //debug
+    printf("got into get_info\n");
+    //call get_device_row to find the row of registry.txt corresponding to the device with the given id
+    char row[200];
+    get_device_row(id, row);
+    if (strcmp(row, "\0") != 0) {
+        printf("is row empty? %s\n", strcmp(row, "\0") == 0 ? "true" : "false");
+        //debug
+        printf("got the row and is not null\n");
+        //copy the row to avoid modifying the original string
+        char row_copy[30];
+        strcpy(row_copy, row);
+
+        strtok(row_copy, ", "); // id
+        strtok(NULL, ", "); // pid
+        char* type = strtok(NULL, ", "); // type
+        char pipename[30];
+        char controller_pipename[30];
+        snprintf(controller_pipename, sizeof(controller_pipename), "/tmp/domotics_0");
+
+        //if the device is a control device, send a message that returns its info, 
+        //if not find the parent of the interaction device and send it a message requesting info of the child 
+        if (strcmp(type, "Hub") == 0 || strcmp(type, "Timer") == 0){
+            //open pipe and send a message to the control device to get its info
+            snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", id);
+            int self_pipe = open(pipename, O_WRONLY);
+            if (self_pipe < 0) {
+                perror("open self pipe");
+                return;
+            }
+            if (write(self_pipe, "self_info", strlen("self_info") + 1) < 0) {
+                perror("error writing to self pipe");
+                close(self_pipe);
+                return;
+            }
+            printf("message sent\n");
+            close(self_pipe);
+        }else{
+            //get the parent of the interaction device
+            char* parent = strtok(NULL, ", "); // parent
+            //handle case where parent is 0, which means is an interaction device without a parent
+            if(strcmp(parent, "0") == 0){
+                printf("Device with id %s is an interaction device without a parent\n", id);
+                //send message directly to the device so it reports its own info
+                snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", id);
+                int child_pipe = open(pipename, O_WRONLY);
+                if (child_pipe < 0) {
+                    perror("open child pipe");
+                    return;
+                }
+                if (write(child_pipe, "self_info", strlen("self_info") + 1) < 0) {
+                    perror("error writing to child pipe");
+                    close(child_pipe);
+                    return;
+                }
+                printf("message sent\n");
+                close(child_pipe);
+            }else{
+                //send message to the parent to get the info of the child
+                snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", parent);
+                int parent_pipe = open(pipename, O_WRONLY);
+                if (parent_pipe < 0) {
+                    perror("error opening parent pipe");
+                    return;
+                }
+                char message[30];
+                snprintf(message, sizeof(message), "child_info %s", id);
+                if (write(parent_pipe, message, strlen(message) + 1) < 0) {
+                    perror("error writing to parent pipe");
+                    close(parent_pipe);
+                    return;
+                }
+                printf("message sent\n");
+                close(parent_pipe);
+            } 
+        }
+        //read response from the pipe of controller and return it
+        char response[512]; 
+        int controller_pipe = open(controller_pipename, O_RDONLY);
+        if (controller_pipe < 0) {
+            perror("error opening controller pipe");
+            return;
+        }
+        ssize_t bytes_read = read(controller_pipe, response, sizeof(response) - 1);
+        printf("reading response\n");
+        if (bytes_read >= 0) {
+            response[bytes_read] = '\0'; // Null-terminate the string
+            strcpy(info, response);
+        } else {
+            strcpy(info, "\0");
+            perror("No response received from device \n");
+        }
+        close(controller_pipe); 
+        return; 
+    } else {
+        //id does not exist in the registry, return empty string
+        strcpy(info, "\0");
+        printf("Device with id %s does not exist in the registry.\n", id);
+        
+        return;
+    }
+}
+
+//searches the registry for the row corresponding to the device with the given id and returns it, if it doesn't exist returns NULL
+void get_device_row(char* id, char* row_copy) {
+    //debug
+    printf("got into get_device_row\n");
+
+    FILE *fp = fopen(".registry.txt", "r");
+    printf("opened registry file \n");
+
+    strcpy(row_copy, "\0"); // Initialize row_copy to an empty string
+
+    //checks if file is not empty
+    if (fp != NULL) {
+        //debug
+        printf("registry aperto\n");
+        char row[200];
+        //iterates through the rows of the file
+        while (fgets(row, sizeof(row), fp) != NULL) {
+            //debug
+            printf("got a row: %s\n", row);
+            //copies the row to avoid modifying the original string
+            char current_row[200];
+            strcpy(current_row, row);
+            
+            //tokenizes the row to get the id of the device
+            char* current_id = strtok(current_row, ", ");
+            //checks if the id of the device is the same as the one passed as argument
+            if (current_id != NULL && strcmp(current_id, id) == 0) {
+                printf("device found with id %s \n", id);
+                //copy the row to the output parameter and return
+                strcpy(row_copy, row);
+                fclose(fp);
+                printf("closed registry file \n");
+                return;
+            }
+        }
+        fclose(fp);
+        printf("id not found\n");
+        return; // id not found
+    } else{
+        perror("error in opening registry file \n");
+        return;
+    }
 }

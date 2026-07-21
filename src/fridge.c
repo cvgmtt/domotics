@@ -35,8 +35,15 @@ int createProcessFridge(int num){
         FILE* fp = initDevice(fd, pipe);
         pid_t child_pid = getpid();
         int child_pid_int = (int) child_pid;
+
         fprintf(fp,"%d, %d, Fridge, 0, \n", fridge.registry.id, child_pid_int);
         fclose(fp);
+
+        //pipe of the controller device to send the info of the fridge when requested
+        char controller_pipename[20];
+        snprintf(controller_pipename, sizeof(controller_pipename), "/tmp/domotics_0");
+
+
         char buf[50];
         int command;
         char id[10];
@@ -45,14 +52,30 @@ int createProcessFridge(int num){
         while(1){
             memset(buf, 0, sizeof(buf));
             int bytes_read = read(pipe, buf, sizeof(buf));
+            char info[100];
+
             if(bytes_read > 0){
                 command = getCommand(buf, id, pos, child_id);
 
                 switch(command){
-                    case 6:
+                    case CHANGE_PARENT_COMMAND:
                         fridge.registry.parent_id = atoi(id);
                         break;
-
+                    case SELF_INFO_COMMAND:
+                        printf("got in fridge self info command \n");
+                        fridge_info_command(&fridge, info, sizeof(info));
+                        if(strlen(info) > 0){
+                            int controller_pipe = open(controller_pipename, O_WRONLY);
+                            if (controller_pipe < 0) {
+                                perror("open controller pipe");
+                                break;
+                            }
+                            if (write(controller_pipe, info, strlen(info) + 1) < 0) {
+                                perror("write controller pipe");
+                            }
+                            close(controller_pipe);                            
+                        }                      
+                        break;
                     default:
                         break;
                     }
@@ -61,4 +84,17 @@ int createProcessFridge(int num){
     } else{
         return checkSuccess(fd, pid);
     }
+}
+
+void fridge_info_command(fridge* current_fridge, char* info, size_t size){
+    snprintf(info, size,
+        "State: %d Switch: %d Registry: time_open=%d perc=%d temp=%d thermostat=%d id=%d parent_id=%d",
+        current_fridge->state,
+        current_fridge->switches,
+        current_fridge->registry.time_open,
+        current_fridge->registry.perc,
+        current_fridge->registry.temp,
+        current_fridge->registry.thermostat,
+        current_fridge->registry.id,
+        current_fridge->registry.parent_id);
 }

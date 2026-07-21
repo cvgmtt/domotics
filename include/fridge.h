@@ -19,7 +19,7 @@ typedef struct fridge{
 }fridge;
 
 
-
+void fridge_info_command(fridge* current_fridge,  char* info, size_t size);
 fridge createFridge(int _perc, int _temp, int _thermostat);
 int createProcessFridge(int num);
 

@@ -20,11 +20,13 @@ typedef struct controller{
 
 
 
-
 int list(char* controller_pid_string);
 
 int link_command(char* child_id, char* parent_id);
 
 int check_parents(char* parent_to_change, char* child_id, char* parent_id);
 
+void get_info(char* id, char* info);
+
+void get_device_row(char* id, char* row_copy);
 #endif

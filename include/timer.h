@@ -18,7 +18,8 @@ typedef struct timer{
 }timer;
 
 
-
+void timer_info_command(timer* current_timer,  char* info, size_t size);
+void timer_registry_info(timer* current_timer,  char* info, size_t size);
 timer createTimer();
 int createProcessTimer(int num);
 

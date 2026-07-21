@@ -48,6 +48,25 @@ int createPipe(int num, char* pipename, size_t size){
     };
 }
 
+//gets the info of a child and returns it as a string
+void child_info_command(char* pipename_child, char* pipename_parent, char* response, size_t size){
+    //opens the pipe of the child and sends the command to get its info
+    int child_pipe = open(pipename_child, O_RDWR);
+    //int parent_pipe = open(pipename_parent, O_RDONLY);
+    write(child_pipe, "self_info", strlen("self_info") + 1);
+    close(child_pipe);
+    //reads the response from the pipe and returns it
+    //ssize_t bytes_read = read(parent_pipe, response, size - 1);
+    // close(parent_pipe);
+    // if(bytes_read >= 0){ 
+    //     response[bytes_read] = '\0'; // Null-terminate the string
+    // } else {
+    //     // handle empty response case
+    //    perror("No response received from child \n");
+    //    return;
+    // }
+}
+
 int getCommand(char* buf, char* id, char* pos, char* child_id){
     char* token = strtok(buf, " ");
     if(token != NULL){
@@ -58,16 +77,22 @@ int getCommand(char* buf, char* id, char* pos, char* child_id){
                 strcpy(id, id_temp);
                 if(strcmp(token, "parent") == 0){
                     printf("got in get command \n");
-                    token = strtok(NULL, " ");
+                    id_temp = strtok(NULL, " ");
                     //in case the interaction device already had a controller device parent
-                    if(token != NULL){
+                    if(id_temp != NULL){
                         strcpy(child_id, token);
                         return CHANGE_PARENT_COMMAND;
                     }
                     return CHANGE_PARENT_COMMAND;
                 } else if(strcmp(token, "child") == 0){
                     printf("child \n");
-                    return CHANGE_CHILD_COMMAND;
+                    if(id_temp != NULL){
+                        strcpy(child_id, id_temp);
+                        return CHANGE_CHILD_COMMAND;
+                    } else{
+                        return INVALID_COMMAND;
+                    }
+                    
                 } else {
                     return INVALID_COMMAND;
                 }
@@ -94,13 +119,23 @@ int getCommand(char* buf, char* id, char* pos, char* child_id){
                 return INVALID_COMMAND;
             }
             return SWITCH_COMMAND;
-        }else if(strcmp(token, "info") == 0){
-            char* id_temp = strtok(NULL, " ");
-            strcpy(id, id_temp);
-            if(id_temp == NULL){
+        } else if(strcmp(token, "self_info") == 0){
+            char* next = strtok(NULL, " ");
+            if(next != NULL){
                 return INVALID_COMMAND;
             }
-            return INFO_COMMAND;
+            return SELF_INFO_COMMAND;
+        } else if(strcmp(token, "child_info") == 0){
+            char* child_id_temp = strtok(NULL, " ");
+            if(child_id_temp == NULL){
+                return INVALID_COMMAND;
+            }
+            strcpy(child_id, child_id_temp);
+            char* extra = strtok(NULL, " ");
+            if(extra != NULL){
+                return INVALID_COMMAND;
+            }
+            return CHILD_INFO_COMMAND;
         } else {
             return INVALID_COMMAND;
         }
