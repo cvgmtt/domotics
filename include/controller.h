@@ -27,4 +27,7 @@ int link_command(char* child_id, char* parent_id);
 
 int check_parents(char* parent_to_change, char* child_id, char* parent_id);
 
+int del_command(char* id);
+
+void delete_device_from_registry(char* id_to_delete);
 #endif

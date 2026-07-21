@@ -53,7 +53,20 @@ int createProcessBulb(int num){
                         printf("got in bulb change parent command \n");
                         bulb.registry.parent_id = atoi(id);
                         break;
-                        
+                    case SELF_DEL_COMMAND:
+                        if(bulb.registry.parent_id != 0){
+                            char pipename_parent[20];
+                            snprintf(pipename_parent, sizeof(pipename_parent), "/tmp/domotics_%d", bulb.registry.parent_id);
+                            if(confirm_del(pipename_parent) == SUCCESS){
+                                kill_device(bulb.registry.id);
+                                break;
+                            } else{
+                                printf("error in deleting device with id %d", bulb.registry.id);
+                                break;
+                            }
+                        }
+                        kill_device(bulb.registry.id);
+                        break;
                     default:
                         break;                    
                 }

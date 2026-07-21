@@ -11,6 +11,10 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
+#include <unistd.h>
+#include <sys/select.h>
+#include <sys/time.h>
+#include <sys/types.h>
 
 FILE* initDevice(int fd[], int pipe);
 
@@ -20,5 +24,7 @@ int createPipe(int num, char* pipename, size_t size);
 
 int getCommand(char* buf, char* id, char* pos, char* child_id);
 
+void kill_device(int id);
 
+int confirm_del(char* pipename_parent);
 #endif
