@@ -55,7 +55,7 @@ int createProcessHub(int num){
             int bytes_read = read(pipe, buf, sizeof(buf));
             if(bytes_read > 0){
                 command = getCommand(buf, id, pos, child_id);
-                char info[100];
+                char info[512];
                 switch(command){
                     case CHANGE_PARENT_COMMAND:
                         for(int i = 0; i < hub.registry.child_num; i++){
@@ -79,6 +79,7 @@ int createProcessHub(int num){
                                 hub.registry.child_id[i] = atoi(id);
                                 hub.registry.child_switches[i] = hub.switches;
                                 hub.registry.child_num++;
+                                printf("new child_num%d \n", hub.registry.child_num);
                                 break;
                             }
                         }
@@ -116,7 +117,7 @@ int createProcessHub(int num){
 }
 
 void hub_info_command(hub* current_hub, char* info, size_t size){
-    char registry [100];
+    char registry[512];
     hub_registry_info(current_hub, registry, sizeof(registry));
     //if the string of registry info is empty, make it contain an error message
     if(registry[0] == '\0'){
@@ -134,20 +135,25 @@ void hub_info_command(hub* current_hub, char* info, size_t size){
     }
  
 void hub_registry_info(hub* current_hub, char* registry, size_t size){
-    char childs[100];
+    char childs[512];
     childs[0] = '\0';
     int len = 0;
 
-    //adds the child ids to the string childs, separated by commas
-    for (int i = 0; i < current_hub->registry.child_num; i++) {
+    //iterate over the full array so the output reflects which slots are occupied
+    for (int i = 0; i < 20; i++) {
         if (i > 0) {
             len += snprintf(childs + len, sizeof(childs) - len, ",");
         }
-        len += snprintf(childs + len, sizeof(childs) - len, "%d", current_hub->registry.child_id[i]);
+        if (current_hub->registry.child_id[i] != -1) {
+            len += snprintf(childs + len, sizeof(childs) - len, "%d", current_hub->registry.child_id[i]);
+        }else{
+            len += snprintf(childs + len, sizeof(childs) - len, "0");
+        }
     }
+
     
     //formats the info as "id=<id parent_id=<parent_id> child_num=<child_num> children=[<string of childs>]"
-    snprintf(registry, size - len,
+    snprintf(registry, size,
         "id=%d parent_id=%d child_num=%d children=[%s]",
         current_hub->registry.id,
         current_hub->registry.parent_id,

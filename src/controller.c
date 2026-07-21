@@ -136,7 +136,7 @@ int main(){
                 token = strtok(NULL, " ");
                 if(token != NULL){
                     char* id1 = token;
-                    char info[100];
+                    char info[512];
                     info[0] = '\0';
                     get_info(id1, info);
                     if(info[0] == '\0'){
@@ -431,7 +431,7 @@ void get_info(char* id, char* info) {
             } 
         }
         //read response from the pipe of controller and return it
-        char response[100]; 
+        char response[512]; 
         int controller_pipe = open(controller_pipename, O_RDONLY);
         if (controller_pipe < 0) {
             perror("error opening controller pipe");
