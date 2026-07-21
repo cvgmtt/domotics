@@ -20,7 +20,7 @@ typedef struct controller{
 
 
 
-int list(char* controller_pid_string);
+void list(char* list_info);
 
 int link_command(char* child_id, char* parent_id);
 

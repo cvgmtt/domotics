@@ -75,9 +75,9 @@ int main(){
             sprintf(controller_pid_string, "%d", controller_pid);        
             if(token != NULL){
                 if(strcmp(token, "list") == 0){
-                    if(list(controller_pid_string) == FAILURE){
-                        perror("could not open file");
-                    };
+                    char list_info[4096] = "\0";
+                    list(list_info);
+                    printf("%s", list_info);
                 } else if (strcmp(token, "add") == 0){
                     token = strtok(NULL, " ");
                     if(token != NULL){
@@ -200,23 +200,35 @@ int main(){
     return 0;
 } 
 
-int list(char* controller_pid_string){
-    FILE* fp = fopen(".registry.txt", "r");
-    if(fp == NULL){
-        return FAILURE;
-    }
-    char data[50];
-    while (fgets(data, 50, fp) != NULL){
+void list(char* list_info){
+    FILE *fp = fopen(".registry.txt", "r");
+    //checks if file is not empty
+    if (fp != NULL) {
+        //debug
+        printf("registry aperto\n");
+        char row[200];
+        char info[512] = "\0";
+        //iterates through the rows of the file
+        while (fgets(row, sizeof(row), fp) != NULL) {
+            //debug
+            printf("got a row: %s\n", row);
+            
+            //tokenizes the row to get the id of the device
+            char* current_id = strtok(row, ", ");
+            
+            //calls get_info and adds the info of the device to the list_info string
 
-        int id, pid;
-        char device[50];
-        
-        sscanf(data, "%d , %d , %s", &id, &pid, device); 
-        printf("Id: %d Device: %s\n", id, device);
-
+            sprintf(list_info + strlen(list_info), "Device ID: %s\n", current_id);
+            get_info(current_id, info);
+            strcat(list_info, info);
+            strcat(list_info, "\n\n");
+            }
+        fclose(fp);
+        return;
+    } else{
+        perror("error in opening registry file \n");
+        return;
     }
-    fclose(fp);
-    return SUCCESS;
 }
 
 int link_command(char* child_id, char* parent_id){
