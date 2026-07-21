@@ -233,7 +233,7 @@ int link_command(char* child_id, char* parent_id){
 
             if (strcmp(current_id, child_id) == 0) {
                 if(strcmp(type_str, "Hub") == 0 || strcmp(type_str, "Timer") == 0){
-                    perror("first id is not an interaction device \n");
+                    printf("first id is not an interaction device \n");
                     return FAILURE;
                 }
                 if(strcmp(parent_to_change, "0") == 0){

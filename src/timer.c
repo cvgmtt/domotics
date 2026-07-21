@@ -63,7 +63,7 @@ int createProcessTimer(int num){
                         break;
 
                     case CHANGE_CHILD_COMMAND:
-                        timer.registry.child_id = atoi(id);
+                        timer.registry.child_id = atoi(child_id);
                         break;
 
                     case SELF_INFO_COMMAND:

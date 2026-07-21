@@ -77,16 +77,22 @@ int getCommand(char* buf, char* id, char* pos, char* child_id){
                 strcpy(id, id_temp);
                 if(strcmp(token, "parent") == 0){
                     printf("got in get command \n");
-                    token = strtok(NULL, " ");
+                    id_temp = strtok(NULL, " ");
                     //in case the interaction device already had a controller device parent
-                    if(token != NULL){
+                    if(id_temp != NULL){
                         strcpy(child_id, token);
                         return CHANGE_PARENT_COMMAND;
                     }
                     return CHANGE_PARENT_COMMAND;
                 } else if(strcmp(token, "child") == 0){
                     printf("child \n");
-                    return CHANGE_CHILD_COMMAND;
+                    if(id_temp != NULL){
+                        strcpy(child_id, id_temp);
+                        return CHANGE_CHILD_COMMAND;
+                    } else{
+                        return INVALID_COMMAND;
+                    }
+                    
                 } else {
                     return INVALID_COMMAND;
                 }

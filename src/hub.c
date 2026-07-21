@@ -58,7 +58,7 @@ int createProcessHub(int num){
                 char info[512];
                 switch(command){
                     case CHANGE_PARENT_COMMAND:
-                        for(int i = 0; i < hub.registry.child_num; i++){
+                        for(int i = 0; i < 20; i++){
                             if(hub.registry.child_id[i] == atoi(child_id)){
                                 hub.registry.child_id[i] = -1;
                                 hub.registry.child_switches[i] = -1;
@@ -74,9 +74,9 @@ int createProcessHub(int num){
 
 
                     case CHANGE_CHILD_COMMAND:
-                        for(int i = 0; i < hub.registry.child_num; i++){
+                        for(int i = 0; i < 20; i++){
                             if(hub.registry.child_id[i] == -1){
-                                hub.registry.child_id[i] = atoi(id);
+                                hub.registry.child_id[i] = atoi(child_id);
                                 hub.registry.child_switches[i] = hub.switches;
                                 hub.registry.child_num++;
                                 printf("new child_num%d \n", hub.registry.child_num);
