@@ -196,6 +196,7 @@ int createProcessHub(int num){
                                 break;
                             } else{
                                 close(check_pipe);
+                                break;
                             }
                         } else{
                             printf("couldn't open the pipe of the device to check whether interaction device was deleted");

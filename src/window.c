@@ -72,6 +72,7 @@ int createProcessWindow(int num){
                             }
                         }
                         kill_device(window.registry.id);
+                        break;
                     case SELF_INFO_COMMAND:
                         printf("got in window self info command \n");
                         window_info_command(&window, info, sizeof(info));

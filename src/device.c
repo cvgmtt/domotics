@@ -76,7 +76,7 @@ int confirm_del(char* pipename_parent){
         return SUCCESS;
     }
     return FAILURE;
-
+}
 //gets the info of a child and returns it as a string
 void child_info_command(char* pipename_child, char* pipename_parent, char* response, size_t size){
     //opens the pipe of the child and sends the command to get its info

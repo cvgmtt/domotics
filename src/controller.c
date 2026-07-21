@@ -46,7 +46,7 @@ int main(){
         FD_SET(controller_pipe, &read_fds);
 
         if (select(max_fd + 1, &read_fds, NULL, NULL, NULL) < 0) {
-            break;
+            continue; 
         }
 
         if (FD_ISSET(controller_pipe, &read_fds)) {
@@ -178,7 +178,7 @@ int main(){
                     if(token != NULL){
                         char* id1 = token;
                         char info[512];
-                        info[0] = '\0'; // Inizializzazione corretta
+                        info[0] = '\0'; 
                         get_info(id1, info);
                         if(info[0] == '\0'){
                             printf("could not get info of the device\n");
@@ -192,12 +192,13 @@ int main(){
                     printf("please, provide one of these commands:\n");
                     printf("list, add <device>, del <id>, link <id1> to <id2>, switch <id> <label> <pos>, info <id>\n");                
                 }
-        }
-    };
+            } 
+        } 
+    } 
     
     close(controller_pipe);
     return 0;
-}
+} 
 
 int list(char* controller_pid_string){
     FILE* fp = fopen(".registry.txt", "r");
