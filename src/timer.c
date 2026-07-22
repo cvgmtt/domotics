@@ -36,7 +36,7 @@ int createProcessTimer(int num){
         int child_pid_int = (int) child_pid;
         fprintf(fp,"%d, %d, Timer, 0, \n", timer.registry.id, child_pid_int);
         fclose(fp);
-        char buf[50];
+        char buf[MSG_SIZE];
         int command;
         char id[10];
         char pos[10];
@@ -51,7 +51,7 @@ int createProcessTimer(int num){
             int bytes_read = read(pipe, buf, sizeof(buf));
             if(bytes_read > 0){
                 command = getCommand(buf, id, pos, child_id);
-                char info[256];
+                char info[MSG_SIZE];
                 memset(info, 0, sizeof(info));
                 switch (command)
                 {
@@ -92,7 +92,8 @@ int createProcessTimer(int num){
                         if(timer.registry.child_id != -1){
                             //send the delete command to its child
                             snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%d", timer.registry.child_id);
-                            char msg[20];
+                            char msg[MSG_SIZE];
+                            memset(msg, 0, sizeof(msg));
                             snprintf(msg, sizeof(msg), "self_delete %d", timer.registry.child_id);
                             int pipe = open(pipename_child, O_WRONLY);
                             if(pipe != -1){
@@ -120,7 +121,7 @@ int createProcessTimer(int num){
 
                                 if(activity > 0){
                                     bytes_read = read(pipe, msg, sizeof(msg));
-                                    if (bytes_read > 0){
+                                    if (bytes_read == sizeof(msg)){
                                         close(pipe);
                                         kill_device(timer.registry.id);
                                         break;
@@ -148,7 +149,8 @@ int createProcessTimer(int num){
                         }
                     case CHILD_DEL_COMMAND:
                         snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%d", timer.registry.child_id);
-                        char msg[20];
+                        char msg[MSG_SIZE];
+                        memset(msg, 0, sizeof(msg));
                         snprintf(msg, sizeof(msg), "self_delete %d", timer.registry.child_id);
                         int pipe = open(pipename_child, O_WRONLY);
                         if(pipe != -1){
@@ -158,7 +160,7 @@ int createProcessTimer(int num){
                             printf("couldn't open the pipe of the interaction device to delete it");
                             break;
                         }
-                        
+                        //checks
                         char pipename[20];
                         snprintf(pipename, sizeof(pipename), "/tmp/domotics_%d", timer.registry.id);
                         pipe = open(pipename, O_RDONLY | O_NONBLOCK);
@@ -177,7 +179,7 @@ int createProcessTimer(int num){
                             if(activity > 0){
                                 // interaction device has responded in time
                                 bytes_read = read(pipe, msg, sizeof(msg));
-                                if (bytes_read > 0){
+                                if (bytes_read == sizeof(msg)){
                                     close(pipe);
                                     timer.registry.child_id = -1;
                                 }

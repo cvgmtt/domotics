@@ -40,7 +40,7 @@ int createProcessWindow(int num){
         snprintf(controller_pipename, sizeof(controller_pipename), "/tmp/domotics_0");
 
 
-        char buf[50];
+        char buf[MSG_SIZE];
         int command;
         char id[10];
         char pos[10];
@@ -48,7 +48,7 @@ int createProcessWindow(int num){
         while(1){
             memset(buf, 0, sizeof(buf));
             int bytes_read = read(pipe, buf, sizeof(buf));
-            char info [256];
+            char info [MSG_SIZE];
             memset(info, 0, sizeof(info));
 
             if(bytes_read > 0){

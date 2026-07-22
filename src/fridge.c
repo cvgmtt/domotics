@@ -37,12 +37,12 @@ int createProcessFridge(int num){
 
         fprintf(fp,"%d, %d, Fridge, 0, \n", fridge.registry.id, child_pid_int);
         fclose(fp);
-        //pipe of the controller device to send the info of the fridge when requested
+
         char controller_pipename[20];
         snprintf(controller_pipename, sizeof(controller_pipename), "/tmp/domotics_0");
 
 
-        char buf[50];
+        char buf[MSG_SIZE];
         int command;
         char id[10];
         char pos[10];
@@ -50,7 +50,7 @@ int createProcessFridge(int num){
         while(1){
             memset(buf, 0, sizeof(buf));
             int bytes_read = read(pipe, buf, sizeof(buf));
-            char info[256];
+            char info[MSG_SIZE];
             memset(info, 0, sizeof(info));
 
             if(bytes_read > 0){

@@ -1,4 +1,5 @@
 #include <device.h>
+#include <unistd.h>
 
 
 FILE* initDevice(int fd[], int pipe){
@@ -52,7 +53,8 @@ void kill_device(int id){
     int controller_pipe = open("/tmp/domotics_0", O_WRONLY);
 
     if (controller_pipe >= 0) {
-        char msg[256] = {0};
+        char msg[MSG_SIZE];
+        memset(msg, 0, sizeof(msg));
         snprintf(msg, sizeof(msg), "del %d", id); 
         
         write(controller_pipe, msg, sizeof(msg));
@@ -67,7 +69,8 @@ void kill_device(int id){
 }
 
 int confirm_del(char* pipename_parent){
-    char msg[30];
+    char msg[MSG_SIZE];
+    memset(msg, 0, sizeof(msg));
     snprintf(msg, sizeof(msg), "received delete command");
     int pipe = open(pipename_parent, O_WRONLY);
     if(pipe !=-1){
@@ -81,11 +84,16 @@ int confirm_del(char* pipename_parent){
 void child_info_command(char* pipename_child, char* pipename_parent, char* response, size_t size){
     //opens the pipe of the child and sends the command to get its info
     int child_pipe = open(pipename_child, O_RDWR);
-    write(child_pipe, "self_info", strlen("self_info") + 1);
+    char msg[MSG_SIZE];
+    memset(msg, 0, sizeof(msg));
+    strcpy(msg, "self_info");
+    write(child_pipe, msg, sizeof(msg));
     close(child_pipe);
 }
 
 int getCommand(char* buf, char* id, char* pos, char* child_id){
+    int wait_time = 1.00 + rand() % 3;
+    printf("waiting time: %d", wait_time);
     char* token = strtok(buf, " ");
     if(token != NULL){
         if(strcmp(token, "new") == 0){

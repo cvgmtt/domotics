@@ -4,6 +4,17 @@
 #include <unistd.h>
 #include <sys/select.h>
 #include <fcntl.h>
+#include <sys/wait.h>
+#include <signal.h>
+
+#define MSG_SIZE 100
+
+int sigchld_pipe[2];
+
+void sigchld_handler(int sig){
+    char byte = 1;
+    write(sigchld_pipe[1], &byte, 1);
+}
 
 int main(){
     //initialization of controller
@@ -34,37 +45,58 @@ int main(){
         return FAILURE;
     }
 
-    int max_fd = controller_pipe > STDIN_FILENO ? controller_pipe : STDIN_FILENO;
+    if (pipe(sigchld_pipe) == -1) {
+        perror("could not open sigchld pipe");
+        return FAILURE;
+    }
+    fcntl(sigchld_pipe[0], F_SETFL, O_NONBLOCK);
+    fcntl(sigchld_pipe[1], F_SETFL, O_NONBLOCK);
+
+    
+
+    int max_fd = controller_pipe;
+    if (STDIN_FILENO > max_fd) max_fd = STDIN_FILENO;
+    if (sigchld_pipe[0] > max_fd) max_fd = sigchld_pipe[0];
     fd_set read_fds;
 
     while(1){
+        signal(SIGCHLD, sigchld_handler);
+        handle_crashed_devices();
+
         printf("Enter the desired command: ");
         fflush(stdout);
 
-            FD_ZERO(&read_fds);
-            FD_SET(STDIN_FILENO, &read_fds);
-            FD_SET(controller_pipe, &read_fds);
+        FD_ZERO(&read_fds);
+        FD_SET(STDIN_FILENO, &read_fds);
+        FD_SET(controller_pipe, &read_fds);
+        FD_SET(sigchld_pipe[0], &read_fds);
 
-            if (select(max_fd + 1, &read_fds, NULL, NULL, NULL) < 0) {
-                continue; 
-            }
+        if (select(max_fd + 1, &read_fds, NULL, NULL, NULL) < 0) {
+            continue; 
+        }
 
-            if (FD_ISSET(controller_pipe, &read_fds)) {
-                char buffer[256];
-                memset(buffer, 0, sizeof(buffer));
-                int bytes_read = read(controller_pipe, buffer, sizeof(buffer));
-                
-                if (bytes_read == sizeof(buffer)) {
-                    if (strncmp(buffer, "del ", 4) == 0) {
-                        char* id_to_del = buffer + 4;
-                        delete_device_from_registry(id_to_del);
-                        printf("\nDevice %s deleted successfully.\n", id_to_del);
-                    } else if (strlen(buffer) > 0) {
-                        printf("\n%s\n", buffer);
-                    }
+        if (FD_ISSET(sigchld_pipe[0], &read_fds)) {
+            char drain[64];
+            while (read(sigchld_pipe[0], drain, sizeof(drain)) > 0);
+            continue;
+        }
+
+        if (FD_ISSET(controller_pipe, &read_fds)) {
+            char buffer[MSG_SIZE];
+            memset(buffer, 0, sizeof(buffer));
+            int bytes_read = read(controller_pipe, buffer, sizeof(buffer));
+            
+            if (bytes_read == sizeof(buffer)) {
+                if (strncmp(buffer, "del ", 4) == 0) {
+                    char* id_to_del = buffer + 4;
+                    delete_device_from_registry(id_to_del);
+                    printf("\nDevice %s deleted successfully.\n", id_to_del);
+                } else if (strlen(buffer) > 0) {
+                    printf("\n%s\n", buffer);
                 }
-                continue;
             }
+            continue;
+        }
 
         if (FD_ISSET(STDIN_FILENO, &read_fds)) {
             char terminal_input[30];
@@ -178,8 +210,8 @@ int main(){
                     token = strtok(NULL, " ");
                     if(token != NULL){
                         char* id1 = token;
-                        char info[512];
-                        info[0] = '\0'; 
+                        char info[MSG_SIZE];
+                        memset(info, 0, sizeof(info)); 
                         get_info(id1, info);
                         if(info[0] == '\0'){
                             printf("could not get info of the device\n");
@@ -208,7 +240,8 @@ void list(char* list_info){
         //debug
         printf("registry aperto\n");
         char row[200];
-        char info[512] = "\0";
+        char info[MSG_SIZE];
+        memset(info, 0, sizeof(info));
         //iterates through the rows of the file
         while (fgets(row, sizeof(row), fp) != NULL) {
             //debug
@@ -223,6 +256,7 @@ void list(char* list_info){
             get_info(current_id, info);
             strcat(list_info, info);
             strcat(list_info, "\n\n");
+            memset(info, 0, sizeof(info));
             }
         fclose(fp);
         return;
@@ -256,7 +290,7 @@ int link_command(char* child_id, char* parent_id){
     int parent_pipe = open(pipename_parent, O_WRONLY | O_NONBLOCK);
     
 
-    char buffer[50];
+    char buffer[MSG_SIZE];
     if (fp == NULL || temp == NULL || child_pipe < 0 || parent_pipe < 0) {
         printf("error in linking \n");
         fclose(fp);
@@ -294,7 +328,7 @@ int link_command(char* child_id, char* parent_id){
                 if(strcmp(parent_to_change, "0") == 0){
                     memset(buffer, 0, sizeof(buffer));
                     snprintf(buffer, sizeof(buffer), "new parent %s", parent_id);
-                    write(child_pipe, buffer, strlen(buffer) + 1);
+                    write(child_pipe, buffer, sizeof(buffer));
                     close(child_pipe);
                 } else{
                     memset(buffer, 0, sizeof(buffer));
@@ -302,7 +336,7 @@ int link_command(char* child_id, char* parent_id){
                     snprintf(pipename_old_parent, sizeof(pipename_old_parent), "/tmp/domotics_%s", parent_to_change);
                     int old_parent_pipe = open(pipename_old_parent, O_WRONLY | O_NONBLOCK);
                     if(old_parent_pipe >= 0){
-                        write(old_parent_pipe, buffer, strlen(buffer) + 1);
+                        write(old_parent_pipe, buffer, sizeof(buffer));
                         close(old_parent_pipe);
                     }
 
@@ -334,7 +368,7 @@ int link_command(char* child_id, char* parent_id){
                 if(strcmp(type_str, "Hub") == 0 || strcmp(type_str, "Timer") == 0){
                     memset(buffer, 0, sizeof(buffer));
                     snprintf(buffer, sizeof(buffer), "new child %s", child_id);
-                    write(parent_pipe, buffer, strlen(buffer) + 1);
+                    write(parent_pipe, buffer, sizeof(buffer));
                     close(parent_pipe);
 
                     if(strcmp(type_str, "Hub") == 0){
@@ -439,7 +473,10 @@ void get_info(char* id, char* info) {
                 perror("open self pipe");
                 return;
             }
-            if (write(self_pipe, "self_info", strlen("self_info") + 1) < 0) {
+            char msg[MSG_SIZE];
+            memset(msg, 0, sizeof(msg));
+            strcpy(msg, "self_info");
+            if (write(self_pipe, msg, sizeof(msg)) < 0) {
                 perror("error writing to self pipe");
                 close(self_pipe);
                 return;
@@ -459,7 +496,10 @@ void get_info(char* id, char* info) {
                     perror("open child pipe");
                     return;
                 }
-                if (write(child_pipe, "self_info", strlen("self_info") + 1) < 0) {
+                char msg[MSG_SIZE];
+                memset(msg, 0, sizeof(msg));
+                strcpy(msg, "self_info");
+                if (write(child_pipe, msg, sizeof(msg)) < 0) {
                     perror("error writing to child pipe");
                     close(child_pipe);
                     return;
@@ -474,9 +514,10 @@ void get_info(char* id, char* info) {
                     perror("error opening parent pipe");
                     return;
                 }
-                char message[30];
+                char message[MSG_SIZE];
+                memset(message, 0, sizeof(message));
                 snprintf(message, sizeof(message), "child_info %s", id);
-                if (write(parent_pipe, message, strlen(message) + 1) < 0) {
+                if (write(parent_pipe, message, sizeof(message)) < 0) {
                     perror("error writing to parent pipe");
                     close(parent_pipe);
                     return;
@@ -486,7 +527,7 @@ void get_info(char* id, char* info) {
             } 
         }
 
-        char response[256];
+        char response[MSG_SIZE];
         memset(response, 0, sizeof(response)); 
         int controller_pipe = open(controller_pipename, O_RDONLY);
         if (controller_pipe < 0) {
@@ -616,7 +657,8 @@ int del_command(char* id){
         char pipename[20];
         char* type = strtok(NULL, ", "); 
         char* parent_id = strtok(NULL, ", ");
-        char msg[20];
+        char msg[MSG_SIZE];
+        memset(msg, 0, sizeof(msg));
         if(strcmp(type, "Hub") == 0 || strcmp(type, "Timer") == 0 || strcmp(parent_id, "0") == 0){
             snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", id);
             snprintf(msg, sizeof(msg), "self_delete %s", id);
@@ -635,5 +677,87 @@ int del_command(char* id){
 
     }else{
         return FAILURE;
+    }
+}
+
+void handle_crashed_devices() {
+    int status;
+    pid_t pid;
+    while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
+        char id[10];
+        memset(id, 0, sizeof(id));
+        char row[256];
+        memset(row, 0, sizeof(row));
+        
+        FILE* fp = fopen(".registry.txt", "r");
+        if (fp) {
+            char temp_row[256];
+            while (fgets(temp_row, sizeof(temp_row), fp) != NULL) {
+                char row_copy[256];
+                strcpy(row_copy, temp_row);
+                char* curr_id = strtok(row_copy, ", ");
+                char* curr_pid = strtok(NULL, ", ");
+                if (curr_pid != NULL && atoi(curr_pid) == pid) {
+                    strcpy(id, curr_id);
+                    strcpy(row, temp_row);
+                    break;
+                }
+            }
+            fclose(fp);
+        }
+
+        if (strlen(id) > 0) {
+            printf("\ndevice %s crashed unexpectedly.\n", id);
+
+            char row_copy[256];
+            strcpy(row_copy, row);
+            strtok(row_copy, ", "); 
+            strtok(NULL, ", "); 
+            char* type = strtok(NULL, ", ");
+            char* parent_id_str = strtok(NULL, ", ");
+            char* children_str = strtok(NULL, "\n");
+
+            if (children_str == NULL) {
+                children_str = "";
+            }
+
+            if (strcmp(type, "Hub") == 0 || strcmp(type, "Timer") == 0) {
+                if (strlen(children_str) > 0) {
+                    char children_ids[20][10];
+                    int children_count = 0;
+
+                    char* child_token = strtok(children_str, ", ");
+                    while (child_token != NULL && children_count < 20) {
+                        char clean_child[10];
+                        memset(clean_child, 0, sizeof(clean_child));
+                        if (sscanf(child_token, "%s", clean_child) == 1 && strlen(clean_child) > 0) {
+                            strcpy(children_ids[children_count], clean_child);
+                            children_count++;
+                        }
+                        child_token = strtok(NULL, ", ");
+                    }
+
+                    for (int i = 0; i < children_count; i++) {
+                        char pipename_child[30];
+                        snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%s", children_ids[i]);
+                        int child_pipe = open(pipename_child, O_WRONLY | O_NONBLOCK);
+                        if (child_pipe >= 0) {
+                            char msg[MSG_SIZE];
+                            memset(msg, 0, sizeof(msg));
+                            snprintf(msg, sizeof(msg), "new parent 0");
+                            write(child_pipe, msg, sizeof(msg));
+                            close(child_pipe);
+                        }
+                        link_command(children_ids[i], "0");
+                    }
+                }
+            }
+            
+            delete_device_from_registry(id);
+            
+            char pipename[30];
+            snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", id);
+            unlink(pipename);
+        }
     }
 }

@@ -11,11 +11,12 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
-#include <unistd.h>
 #include <sys/select.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <time.h>
+#define MSG_SIZE 100
+
 
 FILE* initDevice(int fd[], int pipe);
 
