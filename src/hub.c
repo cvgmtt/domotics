@@ -242,14 +242,29 @@ int createProcessHub(int num){
                                 snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%d", hub.registry.child_id[i] );
                                 int child_pipe = open(pipename_child, O_WRONLY | O_NONBLOCK);
                                 if (child_pipe >= 0){
-                                    char child_msg[50];
-                                    snprintf(child_msg, sizeof(child_msg), "switch %s", pos);
-                                    if (write(child_pipe, child_msg, strlen(child_msg) + 1) < 0) {
+                                    char message[50];
+                                    snprintf(message, sizeof(message), "switch %s", pos);
+                                    if (write(child_pipe, message, strlen(message) + 1) < 0) {
                                         perror("write child pipe");
                                     }
                                     close(child_pipe);
                                 }
                             }
+                        }
+                        //manca l'updating dell'array child_switches
+                        //lo implemento dopo quando ho un sistema di notifica da parte del figlio che funziona
+                        break;
+                    case SWITCH_CHILD_COMMAND:
+                        printf("command switch_child reached in hub\n");
+                        char message[50];
+                        snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%d", id );
+                        int child_pipe = open(pipename_child, O_WRONLY | O_NONBLOCK);
+                        if (child_pipe >= 0){
+                            snprintf(message, sizeof(message), "switch %s", pos);
+                            if (write(child_pipe, message, strlen(message) + 1) < 0) {
+                                perror("write child pipe");
+                            }
+                            close(child_pipe);
                         }
                         //manca l'updating dell'array child_switches
                         //lo implemento dopo quando ho un sistema di notifica da parte del figlio che funziona
