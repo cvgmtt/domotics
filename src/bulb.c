@@ -93,12 +93,14 @@ int createProcessBulb(int num){
                     case SWITCH_COMMAND:
                         if (strcmp(pos, "on") == 0){
                             bulb.switches = 1;
-                            bulb.state = 1;
+                            bulb.state = 1;  
                         }else if (strcmp(pos, "off") == 0){
                             bulb.switches = 0;
                             bulb.state = 0;
                         }
-                        //qui dovrebbe poi notificare il control device che lo stato è cambiato
+                        //notifies father
+                        snprintf(pipename_father, sizeof(pipename_father), "/tmp/domotics_%d", bulb.registry.parent_id);
+                        notify_parent(pipename_father, window.state);
                         break;
                     default:
                         break;                    

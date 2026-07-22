@@ -267,7 +267,13 @@ int createProcessHub(int num){
                             close(child_pipe);
                         }
                         //manca l'updating dell'array child_switches
-                        //lo implemento dopo quando ho un sistema di notifica da parte del figlio che funziona
+                        //si aggiornano automaticamente gestendo il comando STATE_CHANGE (dovrebbe avere senso)
+                        break;
+                    case STATE_CHANGE:
+                        int child_state = atoi(pos);
+                        if(child_state != hub.state){
+                            printf("hub's state is inconsistent");
+                        }
                         break;
                     default:
                         break;

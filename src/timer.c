@@ -241,6 +241,12 @@ int createProcessTimer(int num){
                         //manca l'updating dell'array child_switches
                         //lo implemento dopo quando ho un sistema di notifica da parte del figlio che funziona
                         break;
+                    case STATE_CHANGE:
+                        int child_state = atoi(pos);
+                        if(child_state != timer.state){
+                            printf("timer's state is inconsistent");
+                        }
+                        break;
                     default:
                         break;
                 }

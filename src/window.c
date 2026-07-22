@@ -47,6 +47,7 @@ int createProcessWindow(int num){
         char id[10];
         char pos[10];
         char child_id[10];
+        char pipename_father[20];
         while(1){
             memset(buf, 0, sizeof(buf));
             int bytes_read = read(pipe, buf, sizeof(buf));
@@ -89,14 +90,16 @@ int createProcessWindow(int num){
                         }                        
                         break;
                     case SWITCH_COMMAND:
-                        if (strcmp(pos, "on") == 0){
+                        if (strcmp(pos, "open") == 0){
                             window.switches = 1;
                             window.state = 1;
-                        }else if (strcmp(pos, "off") == 0){
+                        }else if (strcmp(pos, "close") == 0){
                             window.switches = 0;
                             window.state = 0;
                         }
-                        //qui dovrebbe poi notificare il control device che lo stato è cambiato
+                        //notifies father
+                        snprintf(pipename_father, sizeof(pipename_father), "/tmp/domotics_%d", window.registry.parent_id);
+                        notify_parent(pipename_father, window.state);
                         break;
                     default:
                         break;
@@ -116,3 +119,4 @@ void window_info_command(window* current_window, char* info, size_t size){
         current_window->registry.time_open,
         current_window->registry.parent_id);
 }
+
