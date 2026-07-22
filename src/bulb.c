@@ -90,6 +90,14 @@ int createProcessBulb(int num){
                             close(controller_pipe);
                         }
                         break;
+                    case SWITCH_COMMAND:
+                        if (strcmp(pos, "on")){
+                            bulb.switches = 1;
+                            bulb.state = 1;
+                        }else if (strcmp(pos, "off")){
+                            bulb.switches = 0;
+                            bulb.state = 0;
+                        }
                         break;
                     default:
                         break;                    

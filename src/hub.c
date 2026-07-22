@@ -223,6 +223,45 @@ int createProcessHub(int num){
                         snprintf(pipename_parent, sizeof(pipename_parent), "/tmp/domotics_%d", hub.registry.id);
                         child_info_command(pipename_child, pipename_parent, info, sizeof(info));
                         break;
+
+                    case SWITCH_COMMAND:
+                        if (strcmp(pos, "on") == 0){
+                            printf("command switch reached in hub\n");
+                            hub.switches = 1;
+                            for(int i = 0; i<20; i++){
+                                if(hub.registry.child_switches[i] != -1){
+                                    snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%d", hub.registry.child_id[i] );
+                                    int child_pipe = open(pipename_child, O_WRONLY | O_NONBLOCK);
+                                    if (child_pipe >= 0){
+                                        if (write(child_pipe, pos, strlen(pos) + 1) < 0) {
+                                            perror("write child pipe");
+                                        }
+                                        close(child_pipe);
+                                    }
+                                    hub.registry.child_switches[i] = 1;
+                                }
+                            }
+                            hub.state = 1;
+                            printf("switched Hub %s\n", pos);
+                        } else if (strcmp(pos, "off") == 0){
+                            hub.switches = 0;
+                            for(int i = 0; i<20; i++){
+                                if(hub.registry.child_switches[i] != -1){
+                                    snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%d", hub.registry.child_id[i] );
+                                    int child_pipe = open(pipename_child, O_WRONLY | O_NONBLOCK);
+                                    if (child_pipe >= 0){
+                                        if (write(child_pipe, pos, strlen(pos) + 1) < 0) {
+                                            perror("write child pipe");
+                                        }
+                                        close(child_pipe);
+                                    }
+                                    hub.registry.child_switches[i] = 0;
+                                }
+                            }
+                            hub.state = 0;
+                            printf("switched %s\n", pos);
+                        }
+                        break;
                     default:
                         break;
                 }

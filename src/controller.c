@@ -156,18 +156,11 @@ int main(){
                     token = strtok(NULL, " ");
                     if(token != NULL){
                         char* id = token;
-                        token = strtok(NULL, " ");
-                        if(token != NULL){
-                            char* label = token;
-                            token = strtok(NULL, " ");
-                            if(token != NULL){
-                                char* pos = token;
-                                //set the switch label of device on/off
-                                //throw errors if you don't find id, don't recognise label or pos
-                            } else {
-                                printf("wrong input. switch requires <id> <label> <pos>\n");
-                            }
-                        } else{
+                        char* label = strtok(NULL, " ");
+                        char* pos = strtok(NULL, ", ");
+                        if(strtok(NULL, ", ") == NULL){
+                            switch_device(id, label, pos);
+                        } else {
                             printf("wrong input. switch requires <id> <label> <pos>\n");
                         }
                     } else{
@@ -199,6 +192,46 @@ int main(){
     close(controller_pipe);
     return 0;
 } 
+
+void switch_device(char* id, char* label, char* pos){
+    //get the row of the device
+    char pipename[30];
+    char row[200];
+    char message[50];
+    get_device_row(id, row);
+    //get id of the device
+    strtok(NULL, ", "); //pid
+    char* type = strtok(NULL, ", ");
+    //check if is a control device or an interaction device
+    if(strcmp(type, "Timer") == 0 || strcmp(type, "Hub") == 0){
+        //send the switch command to the device
+        snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", id);
+        int device_pipe = open(pipename, O_WRONLY | O_NONBLOCK);
+        if(device_pipe >= 0){
+            char message[50];
+            snprintf(message, sizeof(message), "switch %s %s", label, pos);
+            write(device_pipe, message, strlen(message) + 1);
+            close(device_pipe);
+            //debug
+            printf("sent message to control device\n");
+        } else{
+            printf("couldn't open the pipe of the device to switch it");
+        }
+    } else{
+        //send message to change position of the child instead of the device itself
+        char* parent = strtok(NULL, ", ");//parent id
+        snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", parent);
+        int device_pipe = open(pipename, O_WRONLY | O_NONBLOCK);
+        if(device_pipe >= 0){
+            snprintf(message, sizeof(message), "switch_child %s %s %s", id, label, pos);
+            write(device_pipe, message, strlen(message) + 1);
+            close(device_pipe);
+        } else{
+            printf("couldn't open the pipe of the device to switch it");
+        }
+    }
+
+};
 
 void list(char* list_info){
     FILE *fp = fopen(".registry.txt", "r");

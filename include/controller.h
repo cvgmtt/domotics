@@ -22,6 +22,8 @@ typedef struct controller{
 
 void list(char* list_info);
 
+void switch_device(char* id, char* label, char* pos);
+
 int link_command(char* child_id, char* parent_id);
 
 int check_parents(char* parent_to_change, char* child_id, char* parent_id);
