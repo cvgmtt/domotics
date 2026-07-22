@@ -225,42 +225,34 @@ int createProcessHub(int num){
                         break;
 
                     case SWITCH_COMMAND:
+                        printf("command switch reached in hub\n");
+                        //changing state and switch
                         if (strcmp(pos, "on") == 0){
-                            printf("command switch reached in hub\n");
                             hub.switches = 1;
-                            for(int i = 0; i<20; i++){
-                                if(hub.registry.child_switches[i] != -1){
-                                    snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%d", hub.registry.child_id[i] );
-                                    int child_pipe = open(pipename_child, O_WRONLY | O_NONBLOCK);
-                                    if (child_pipe >= 0){
-                                        if (write(child_pipe, pos, strlen(pos) + 1) < 0) {
-                                            perror("write child pipe");
-                                        }
-                                        close(child_pipe);
-                                    }
-                                    hub.registry.child_switches[i] = 1;
-                                }
-                            }
                             hub.state = 1;
                             printf("switched Hub %s\n", pos);
                         } else if (strcmp(pos, "off") == 0){
                             hub.switches = 0;
-                            for(int i = 0; i<20; i++){
-                                if(hub.registry.child_switches[i] != -1){
-                                    snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%d", hub.registry.child_id[i] );
-                                    int child_pipe = open(pipename_child, O_WRONLY | O_NONBLOCK);
-                                    if (child_pipe >= 0){
-                                        if (write(child_pipe, pos, strlen(pos) + 1) < 0) {
-                                            perror("write child pipe");
-                                        }
-                                        close(child_pipe);
-                                    }
-                                    hub.registry.child_switches[i] = 0;
-                                }
-                            }
                             hub.state = 0;
                             printf("switched %s\n", pos);
                         }
+                        //updating children 
+                        for(int i = 0; i<20; i++){
+                            if(hub.registry.child_switches[i] != -1){
+                                snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%d", hub.registry.child_id[i] );
+                                int child_pipe = open(pipename_child, O_WRONLY | O_NONBLOCK);
+                                if (child_pipe >= 0){
+                                    char child_msg[50];
+                                    snprintf(child_msg, sizeof(child_msg), "switch %s", pos);
+                                    if (write(child_pipe, child_msg, strlen(child_msg) + 1) < 0) {
+                                        perror("write child pipe");
+                                    }
+                                    close(child_pipe);
+                                }
+                            }
+                        }
+                        //manca l'updating dell'array child_switches
+                        //lo implemento dopo quando ho un sistema di notifica da parte del figlio che funziona
                         break;
                     default:
                         break;

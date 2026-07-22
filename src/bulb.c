@@ -91,13 +91,14 @@ int createProcessBulb(int num){
                         }
                         break;
                     case SWITCH_COMMAND:
-                        if (strcmp(pos, "on")){
+                        if (strcmp(pos, "on") == 0){
                             bulb.switches = 1;
                             bulb.state = 1;
-                        }else if (strcmp(pos, "off")){
+                        }else if (strcmp(pos, "off") == 0){
                             bulb.switches = 0;
                             bulb.state = 0;
                         }
+                        //qui dovrebbe poi notificare il control device che lo stato è cambiato
                         break;
                     default:
                         break;                    
