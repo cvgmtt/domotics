@@ -153,20 +153,19 @@ int main(){
                         printf("wrong input. linking requires two valid ids\n");
                     }
                 } else if(strcmp(token, "switch") == 0){
-                    token = strtok(NULL, " ");
-                    if(token != NULL){
-                        char* id = strtok(NULL, " ");
-                        if(id != NULL){
-                            char* label = strtok(NULL, " ");
-                            char* pos = strtok(NULL, ", ");
-                            if(strcmp(label, "power") != 0 || strcmp(label, "door")!= 0 || strcmp(label, "window") != 0){
-                                printf("wrong input. switch requires a valid label such as: door, window, power\n");
-                            }else if(strtok(NULL, " ") == NULL){
-                                    switch_device(id, label, pos);
-                            } else {
-                                printf("wrong input. switch requires <id> <label> <pos>\n");
-                            }   
-                        }
+                    char* id = strtok(NULL, " ");
+                    printf("id: %s\n", id);
+                    if(id != NULL){
+                        char* label = strtok(NULL, " ");
+                        printf("label: %s\n", label);
+                        char* pos = strtok(NULL, ", ");
+                        if(strcmp(label, "power") != 0 && strcmp(label, "door")!= 0 && strcmp(label, "window") != 0){
+                            printf("wrong input. switch requires a valid label such as: door, window, power\n");
+                        }else if(strtok(NULL, " ") == NULL){
+                                switch_device(id, label, pos);
+                        } else {
+                            printf("wrong input. switch requires <id> <label> <pos>\n");
+                        } 
                     } else{
                         printf("wrong input. switch requires <id> <label> <pos>\n");
                     }     
@@ -202,7 +201,7 @@ void switch_device(char* id, char* label, char* pos){
     char pipename[30];
     char row[200];
     char message[50];
-    char parent[10];
+    char* parent;
     get_device_row(id, row);
     //check for valid row
     if(strcmp(row, "\0") == 0){
@@ -212,9 +211,9 @@ void switch_device(char* id, char* label, char* pos){
     strtok(NULL, ", "); //pid
     char* type = strtok(NULL, ", ");
     //check if label is consisent with type of device
-    if(strcmp(label, "power") == 0){ù
+    if(strcmp(label, "power") == 0){
         //check if is an interaction device or a bulb
-        if(strcmp(type, "Timer") == 0 || strcmp(type, "Hub") == ){
+        if(strcmp(type, "Timer") == 0 || strcmp(type, "Hub") == 0){
             //send the switch command to the device
             snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", id);
             int device_pipe = open(pipename, O_WRONLY | O_NONBLOCK);
@@ -226,9 +225,9 @@ void switch_device(char* id, char* label, char* pos){
                 //debug
                 printf("sent message to control device\n");
             } else{
-                printf("couldn't open the pipe of the device to switch it");
+                printf("couldn't open the pipe of the device to switch it 1\n");
             }
-        } else if(strcmp(type, "bulb") == 0){
+        } else if(strcmp(type, "Bulb") == 0){
             //send the switch command to the father of the device
             parent = strtok(NULL, ", ");//parent id
             snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", parent);
@@ -240,12 +239,12 @@ void switch_device(char* id, char* label, char* pos){
                 //debug
                 printf("send messato to parent of bulb");
             } else{
-                printf("couldn't open the pipe of the device to switch it");
+                printf("couldn't open the pipe of the device to switch it 2\n");
             }
         }else{
-            printf("couldn't open the pipe of the device to switch it");
+            printf("couldn't open the pipe of the device to switch it 3\n");
         }
-    }else if (strcmp(label, "door") == 0 && strcmp(type, "fridge")){
+    }else if (strcmp(label, "door") == 0 && strcmp(type, "Fridge") == 0){
         //send the switch command to the father of the device
         parent = strtok(NULL, ", ");//parent id
         snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", parent);
@@ -257,9 +256,9 @@ void switch_device(char* id, char* label, char* pos){
             //debug
             printf("send messato to parent of fridge");
         } else{
-            printf("couldn't open the pipe of the device to switch it");
+            printf("couldn't open the pipe of the device to switch it 4\n");
         }
-    }else if (strcmp(label, "window") == 0 && strcmp(type, "window")){
+    }else if (strcmp(label, "window") == 0 && strcmp(type, "Window") == 0){
         //send the switch command to the father of the device
         parent = strtok(NULL, ", ");//parent id
         snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", parent);
@@ -271,7 +270,7 @@ void switch_device(char* id, char* label, char* pos){
             //debug
             printf("send messato to parent of window");
         } else{
-            printf("couldn't open the pipe of the device to switch it");
+            printf("couldn't open the pipe of the device to switch it 5\n");
         }
     }else{
         printf("inconsistent label and type of device, cannot perfrom action\n");

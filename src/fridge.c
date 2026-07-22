@@ -91,6 +91,16 @@
                                 close(controller_pipe);                            
                             }                      
                             break;
+                        case SWITCH_COMMAND:
+                            if (strcmp(pos, "on") == 0){
+                                fridge.switches = 1;
+                                fridge.state = 1;
+                            }else if (strcmp(pos, "off") == 0){
+                                fridge.switches = 0;
+                                fridge.state = 0;
+                            }
+                            //qui dovrebbe poi notificare il control device che lo stato è cambiato
+                            break;
                         default:
                             break;
                         }

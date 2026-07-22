@@ -88,6 +88,16 @@ int createProcessWindow(int num){
                             close(controller_pipe);
                         }                        
                         break;
+                    case SWITCH_COMMAND:
+                        if (strcmp(pos, "on") == 0){
+                            window.switches = 1;
+                            window.state = 1;
+                        }else if (strcmp(pos, "off") == 0){
+                            window.switches = 0;
+                            window.state = 0;
+                        }
+                        //qui dovrebbe poi notificare il control device che lo stato è cambiato
+                        break;
                     default:
                         break;
                     }

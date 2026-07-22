@@ -41,9 +41,10 @@ int createProcessTimer(int num){
         char id[10];
         char pos[10];
         char child_id[10];
-        char pipename_child[20];
+        char pipename_child[30];
         char controller_pipename[20];
         char pipename_parent[20];
+        int child_pipe;
         snprintf(controller_pipename, sizeof(controller_pipename), "/tmp/domotics_0");
 
         while(1){
@@ -57,7 +58,7 @@ int createProcessTimer(int num){
                     case CHANGE_PARENT_COMMAND:
                         timer.registry.child_id = -1;            
                         snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%s", child_id);
-                        int child_pipe = open(pipename_child, O_WRONLY | O_NONBLOCK);
+                        child_pipe = open(pipename_child, O_WRONLY | O_NONBLOCK);
                         write(child_pipe, buf, sizeof(buf));
                         close(child_pipe);
                         break;
@@ -195,6 +196,51 @@ int createProcessTimer(int num){
                             break;
                         }
                         break;
+                    case SWITCH_COMMAND:
+                        //debug
+                        printf("command switch reached in timer\n");
+                        //changing state and switch
+                        if (strcmp(pos, "on") == 0){
+                            timer.switches = 1;
+                            timer.state = 1;
+                            printf("switched Timer %s\n", pos);
+                        } else if (strcmp(pos, "off") == 0){
+                            timer.switches = 0;
+                            timer.state = 0;
+                            printf("switched Timer%s\n", pos);
+                        }
+                        //updating child
+                        
+                        if(timer.registry.child_id > 0){
+                            snprintf(pipename_child, sizeof(pipename_child), "/t,mp/domotics_%d", timer.registry.child_id );
+                            child_pipe = open(pipename_child, O_WRONLY | O_NONBLOCK);
+                            if (child_pipe >= 0){
+                                char message[30];
+                                snprintf(message, sizeof(message), "switch %s", pos);
+                                if (write(child_pipe, message, strlen(message) + 1) < 0) {
+                                    perror("write child pipe");
+                                }
+                                close(child_pipe);
+                            }
+                        }
+                        //manca l'updating dell'array child_switches
+                        //lo implemento dopo quando ho un sistema di notifica da parte del figlio che funziona
+                        break;
+                    case SWITCH_CHILD_COMMAND:
+                        printf("command switch_child reached in timer\n");
+                        char message[50];
+                        snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%s", id );
+                        child_pipe = open(pipename_child, O_WRONLY | O_NONBLOCK);
+                        if (child_pipe >= 0){
+                            snprintf(message, sizeof(message), "switch %s", pos);
+                            if (write(child_pipe, message, strlen(message) + 1) < 0) {
+                                perror("write child pipe");
+                            }
+                            close(child_pipe);
+                        }
+                        //manca l'updating dell'array child_switches
+                        //lo implemento dopo quando ho un sistema di notifica da parte del figlio che funziona
+                        break;
                     default:
                         break;
                 }
@@ -210,7 +256,7 @@ void timer_info_command(timer* current_timer, char* info, size_t size){
     char registry[100];
     timer_registry_info(current_timer, registry, sizeof(registry));
     //if the string of registry info is NULL, make it contain an error message
-    if(registry == NULL){
+    if(strcmp(registry, "\0") == 0){
         perror("error reading registry");
         return;
     }
@@ -225,6 +271,7 @@ void timer_info_command(timer* current_timer, char* info, size_t size){
 //gets the info of the registry of the timer and returns it as a string
 void timer_registry_info(timer* current_timer,  char* info, size_t size){
     char childs[100];
+    strcpy(info, "\0");
     childs[0] = '\0';
     int len = 0;
     if(current_timer->registry.child_id == -1){

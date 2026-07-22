@@ -257,7 +257,7 @@ int createProcessHub(int num){
                     case SWITCH_CHILD_COMMAND:
                         printf("command switch_child reached in hub\n");
                         char message[50];
-                        snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%d", id );
+                        snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%s", id );
                         int child_pipe = open(pipename_child, O_WRONLY | O_NONBLOCK);
                         if (child_pipe >= 0){
                             snprintf(message, sizeof(message), "switch %s", pos);
