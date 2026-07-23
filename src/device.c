@@ -18,6 +18,21 @@ FILE* initDevice(int fd[], int pipe){
     return fp;
 }
 
+int setup_device(int id, const char* type_name, int control_pipe[]) {
+    srand(time(NULL));
+    char pipename[32];
+    if (createPipe(id, pipename, sizeof(pipename)) == FAILURE) {
+        return -1;
+    }
+    int pipe_fd = open(pipename, O_RDWR);
+    FILE* fp = initDevice(control_pipe, pipe_fd);
+    if (fp != NULL) {
+        fprintf(fp, "%d, %d, %s, 0, \n", id, getpid(), type_name);
+        fclose(fp);
+    }
+    return pipe_fd;
+}
+
 int checkSuccess(int fd[], pid_t pid){
     close(fd[1]);
     int child_status;
@@ -27,13 +42,13 @@ int checkSuccess(int fd[], pid_t pid){
 
     if (bytes_read > 0) {
         if (child_status == FAILURE) {
-            perror("could not open file \n");
+            printf("could not open file \n");
             waitpid(pid, NULL, 0);
         }
         return child_status; 
     } else {
         waitpid(pid, NULL, 0);
-        perror("process crashed \n");
+        printf("process crashed \n");
         return FAILURE;
     }
 }
@@ -81,19 +96,85 @@ int confirm_del(char* pipename_parent){
     return FAILURE;
 }
 
-void child_info_command(char* pipename_child, char* pipename_parent, char* response, size_t size){
-    //opens the pipe of the child and sends the command to get its info
-    int child_pipe = open(pipename_child, O_RDWR);
-    char msg[MSG_SIZE];
-    memset(msg, 0, sizeof(msg));
-    strcpy(msg, "self_info");
-    write(child_pipe, msg, sizeof(msg));
-    close(child_pipe);
+void child_info_command(char* pipename_child) {
+    //opens the pipe of the child and send the command to get the info
+    int child_pipe = open(pipename_child, O_WRONLY); 
+    if (child_pipe != -1) {
+        char msg[MSG_SIZE];
+        memset(msg, 0, sizeof(msg));
+        strcpy(msg, "self_info");
+        write(child_pipe, msg, sizeof(msg));
+        close(child_pipe);
+    } else {
+        printf("Error: couldn't open child pipe for info request.\n");
+    }
+}
+
+void send_info_to_controller(const char* info) {
+    if (info == NULL || strlen(info) == 0) return;
+    
+    char buffer[MSG_SIZE];
+    memset(buffer, 0, MSG_SIZE);
+    
+    strncpy(buffer, info, MSG_SIZE - 1);
+    
+    int controller_pipe = open("/tmp/domotics_0", O_WRONLY);
+    if (controller_pipe >= 0) {
+        if (write(controller_pipe, buffer, MSG_SIZE) < 0) {
+            printf("write controller pipe \n");
+        }
+        close(controller_pipe);
+    } else {
+        printf("open controller pipe \n");
+    }
+}
+
+void delete_interaction_device(int id, int parent_id) {
+    if (parent_id != 0) {
+        char pipename_parent[32];
+        snprintf(pipename_parent, sizeof(pipename_parent), "/tmp/domotics_%d", parent_id);
+        if (confirm_del(pipename_parent) != SUCCESS) {
+            printf("error in deleting device with id %d\n", id);
+        }
+    }
+    kill_device(id);
+}
+
+int wait_for_device_response(int my_id, char* response_buf, size_t buf_size) {
+    char check_pipename[20];
+    snprintf(check_pipename, sizeof(check_pipename), "/tmp/domotics_%d", my_id);
+    
+    int check_pipe = open(check_pipename, O_RDONLY | O_NONBLOCK);
+    if (check_pipe == -1) {
+        return PIPE_ERROR;
+    }
+    fd_set read_fds;
+    FD_ZERO(&read_fds);
+    FD_SET(check_pipe, &read_fds);
+
+    struct timeval tv;
+    tv.tv_sec = 4;
+    tv.tv_usec = 0;
+
+    int activity = select(check_pipe + 1, &read_fds, NULL, NULL, &tv);
+    
+    int result = TIME_OUT;
+    if (activity > 0) {
+        if (read(check_pipe, response_buf, buf_size) > 0) {
+            result = SUCCESS;
+        }
+    }
+    
+    close(check_pipe);
+    return result;
+}
+
+void wait_function(){
+    int wait_time = 1.00 + rand() % 3;
+    sleep(wait_time);
 }
 
 int getCommand(char* buf, char* id, char* pos, char* child_id){
-    int wait_time = 1.00 + rand() % 3;
-    printf("waiting time: %d", wait_time);
     char* token = strtok(buf, " ");
     if(token != NULL){
         if(strcmp(token, "new") == 0){
@@ -102,7 +183,6 @@ int getCommand(char* buf, char* id, char* pos, char* child_id){
                 char* id_temp = strtok(NULL, " ");
                 strcpy(id, id_temp);
                 if(strcmp(token, "parent") == 0){
-                    printf("got in get command \n");
                     id_temp = strtok(NULL, " ");
                     //in case the interaction device already had a controller device parent
                     if(id_temp != NULL){
@@ -111,7 +191,6 @@ int getCommand(char* buf, char* id, char* pos, char* child_id){
                     }
                     return CHANGE_PARENT_COMMAND;
                 } else if(strcmp(token, "child") == 0){
-                    printf("child \n");
                     if(id_temp != NULL){
                         strcpy(child_id, id_temp);
                         return CHANGE_CHILD_COMMAND;
