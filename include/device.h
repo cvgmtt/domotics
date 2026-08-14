@@ -15,7 +15,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <time.h>
-#define MSG_SIZE 100
+#define MSG_SIZE 200
 
 
 FILE* initDevice(int fd[], int pipe);

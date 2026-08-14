@@ -56,7 +56,6 @@ int checkSuccess(int fd[], pid_t pid){
 int createPipe(int num, char* pipename, size_t size){
     snprintf(pipename, size, "/tmp/domotics_%d", num);
     if(mkfifo(pipename, 0644) == 0){
-        printf("pipe opened correctly \n");
         return SUCCESS;
     }else{
         perror("error in opening pipe \n");

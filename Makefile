@@ -26,7 +26,6 @@ $(TARGET): $(OBJECTS)
 	$(CC) $(CFLAGS) $^ -o $@
 
 run: build
-	@echo "Running $(TARGET)"
 	./$(TARGET)
 
 clean:

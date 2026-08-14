@@ -71,13 +71,13 @@ int createProcessFridge(int num){
 
 void fridge_info_command(fridge* current_fridge, char* info, size_t size){
     snprintf(info, size,
-        "State: %d Switch: %d Registry: time_open=%d perc=%d temp=%d thermostat=%d id=%d parent_id=%d",
+        "State: %d, Switch: %d,  Id: %d, Parent id=%d, Time open: %d, Fill percentage: %d, Temperature: %d, Thermostat: %d",
         current_fridge->state,
         current_fridge->switches,
+        current_fridge->registry.id,
+        current_fridge->registry.parent_id,
         current_fridge->registry.time_open,
         current_fridge->registry.perc,
         current_fridge->registry.temp,
-        current_fridge->registry.thermostat,
-        current_fridge->registry.id,
-        current_fridge->registry.parent_id);
+        current_fridge->registry.thermostat);
 }

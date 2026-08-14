@@ -155,7 +155,7 @@ void timer_info_command(timer* current_timer, char* info, size_t size){
     }
     //formats the info as "State: <state> Switch: <switches> Registry: <registry info>"
     snprintf(info, size,
-        "State: %d Switch: %d Registry: %s",
+        "State: %d Switch: %d, %s",
         current_timer->state,
         current_timer->switches,
         registry );
@@ -163,21 +163,10 @@ void timer_info_command(timer* current_timer, char* info, size_t size){
 
 //gets the info of the registry of the timer and returns it as a string
 void timer_registry_info(timer* current_timer,  char* info, size_t size){
-    char childs[100];
-    childs[0] = '\0';
-    int len = 0;
-    if(current_timer->registry.child_id == -1){
-        snprintf(childs, sizeof(childs), "0");
-    } else{
-        snprintf(childs, sizeof(childs), "1");        
-    }
-    
-    //formats the info as "id=<id> parent_id=<parent_id> child_num=<child_num> children=[<string of children>]"
-    snprintf(info, size - len,
-        "id=%d parent_id=%d child_num=%s children=[%d]",
+    snprintf(info, size,
+        "Id=%d, Parent id: %d, Child: %d",
         current_timer->registry.id,
         current_timer->registry.parent_id,
-        childs,
         current_timer->registry.child_id
     );
 }

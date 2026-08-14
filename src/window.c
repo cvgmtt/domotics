@@ -5,6 +5,7 @@ window createWindow(){
     window.state = 0;
     window.switches = 1;
     window.registry.time_open = 0;
+    window.registry.parent_id = 0;
     return window;
 }
 
@@ -70,9 +71,10 @@ int createProcessWindow(int num){
 
 void window_info_command(window* current_window, char* info, size_t size){
     snprintf(info, size,
-        "State: %d Switch: %d Time: %d Parent: %d",
+        "State: %d, Switch: %d, Id: %d, Parent id: %d, Time: %d",
         current_window->state,
         current_window->switches,
-        current_window->registry.time_open,
-        current_window->registry.parent_id);
+        current_window->registry.id,
+        current_window->registry.parent_id,
+        current_window->registry.time_open);
 }

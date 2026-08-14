@@ -70,9 +70,10 @@ int createProcessBulb(int num){
 
 void bulb_info_command(bulb* current_bulb, char* info, size_t size){
     snprintf(info, size,
-        "State: %d Switch: %d Time: %d Parent: %d",
+        "State: %d, Switch: %d, Id: %d, Parent id: %d, Time: %d",
         current_bulb->state,
         current_bulb->switches,
-        current_bulb->registry.time,
-        current_bulb->registry.parent_id);
+        current_bulb->registry.id,
+        current_bulb->registry.parent_id,
+        current_bulb->registry.time);
 }

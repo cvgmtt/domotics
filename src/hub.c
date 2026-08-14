@@ -35,7 +35,6 @@ int createProcessHub(int num){
         char pos[10];
         char child_id[10];
         char pipename_child[20];
-        char controller_pipename[20] = "/tmp/domotics_0";
         char pipename_parent[20];
 
         while(1){
@@ -76,7 +75,6 @@ int createProcessHub(int num){
                                 hub.registry.child_id[i] = atoi(child_id);
                                 hub.registry.child_switches[i] = hub.switches;
                                 hub.registry.child_num++;
-                                printf("new child_num%d \n", hub.registry.child_num);
                                 break;
                             }
                         }
@@ -191,11 +189,10 @@ void hub_info_command(hub* current_hub, char* info, size_t size){
         return;
     }
     snprintf(info, size,
-        "State: %d Switch: %d Registry: %s",
+        "State: %d, Switch: %d, %s",
         current_hub->state,
         current_hub->switches,
         registry );
-    printf("hub info are created\n");
 }
  
 void hub_registry_info(hub* current_hub, char* registry, size_t size){
@@ -215,10 +212,9 @@ void hub_registry_info(hub* current_hub, char* registry, size_t size){
     }
 
     snprintf(registry, size,
-        "id=%d parent_id=%d child_num=%d children=[%s]",
+        "Id: %d, Parent id: %d Number of child devices: %d, Children=[%s]",
         current_hub->registry.id,
         current_hub->registry.parent_id,
         current_hub->registry.child_num,
         childs);
-    printf("registry info are created\n");
 }
