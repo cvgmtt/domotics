@@ -46,7 +46,7 @@ int createProcessBulb(int num){
         char id[10];
         char pos[10];
         char child_id[10];
-
+        char pipename_father[20];
         while(1){
             memset(buf, 0, sizeof(buf));
             int bytes_read = read(pipe, buf, sizeof(buf));
@@ -100,7 +100,7 @@ int createProcessBulb(int num){
                         }
                         //notifies father
                         snprintf(pipename_father, sizeof(pipename_father), "/tmp/domotics_%d", bulb.registry.parent_id);
-                        notify_parent(pipename_father, window.state);
+                        notify_parent(pipename_father, bulb.state);
                         break;
                     default:
                         break;                    

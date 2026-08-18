@@ -93,7 +93,7 @@ void notify_parent(char* pipename, int state){
         if (write(father_pipe, message, strlen(message) + 1) < 0) {
             perror("error writing father pipe");
         }
-        close(child_pipe);
+        close(father_pipe);
     }
 }
 
