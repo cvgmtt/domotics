@@ -56,6 +56,18 @@ int createProcessFridge(int num){
             int bytes_read = read(pipe, buf, sizeof(buf));
             char info[100];
 
+            //update time passed in seconds since fridge was opened
+            if (fridge.state == 1 && fridge.registry.time != 0) {
+                time_t now = time(NULL);
+                fridge.registry.time = (now - fridge.registry.time);
+                if (fridge.registry.delay > 0 && fridge.registry.time >= fridge.registry.delay) {
+                    //automatically close the fridge after the delay time has passed
+                    fridge.state = 0;
+                    fridge.switches = 0;
+                    fridge.registry.time = 0;
+                }
+            }
+
             if(bytes_read > 0){
                 command = getCommand(buf, id, pos, child_id);
 
@@ -109,17 +121,6 @@ int createProcessFridge(int num){
                         break;
                     default:
                         break;
-                }
-                //update time passed in seconds since fridge was opened
-                if (fridge.state == 1 && fridge.registry.time != 0) {
-                    time_t now = time(NULL);
-                    fridge.registry.time = (now - fridge.registry.time);
-                    if (fridge.registry.delay > 0 && fridge.registry.time >= fridge.registry.delay) {
-                        //automatically close the fridge after the delay time has passed
-                        fridge.state = 0;
-                        fridge.switches = 0;
-                        fridge.registry.time = 0;
-                    }
                 }
             }
         }
