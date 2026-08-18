@@ -47,7 +47,6 @@ int createProcessWindow(int num){
         char id[10];
         char pos[10];
         char child_id[10];
-        char pipename_father[20];
         while(1){
             memset(buf, 0, sizeof(buf));
             int bytes_read = read(pipe, buf, sizeof(buf));
@@ -90,14 +89,13 @@ int createProcessWindow(int num){
                         }                        
                         break;
                     case SWITCH_COMMAND:
-                        if (strcmp(pos, "open") == 0){
-                            window.state = 1;
+                        if (strcmp(pos, "on") == 0){
+                            window.state = 1;//open 
                             window.switches = 0;
-                        }else if (strcmp(pos, "close") == 0){
-                            window.state = 0;
+                        }else if (strcmp(pos, "off") == 0){
+                            window.state = 0;//closed
                             window.switches = 0;
                         }
-                    
                         break;
                     default:
                         break;

@@ -131,12 +131,14 @@ int getCommand(char* buf, char* id, char* pos, char* child_id){
             strcpy(child_id, id_temp);
             return CHILD_DEL_COMMAND;
         } else if(strcmp(token, "switch") == 0){
+            //get the position
             char* pos_temp = strtok(NULL, " ");
             char* extra = strtok(NULL, " ");
             if(extra != NULL){
                 printf("invalid command");
                 return INVALID_COMMAND;
             }
+            //return the position to switch to
             strcpy(pos, pos_temp);
             return SWITCH_COMMAND;
         } else if(strcmp(token, "switch_child") == 0){

@@ -225,18 +225,26 @@ int createProcessHub(int num){
                         break;
 
                     case SWITCH_COMMAND:
+                        //debug
                         printf("command switch reached in hub\n");
+
                         //changing state and switch
                         if (strcmp(pos, "on") == 0){
                             hub.switches = 1;
                             hub.state = 1;
+                            
+                            //debug
                             printf("switched Hub %s\n", pos);
+
                         } else if (strcmp(pos, "off") == 0){
                             hub.switches = 0;
                             hub.state = 0;
+
+                            //debug
                             printf("switched %s\n", pos);
+
                         }
-                        //updating children 
+                        //updating all children
                         for(int i = 0; i<20; i++){
                             if(hub.registry.child_switches[i] != -1){
                                 snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%d", hub.registry.child_id[i] );
@@ -249,10 +257,14 @@ int createProcessHub(int num){
                                     }
                                     close(child_pipe);
                                 }
+                                //update the switches array of the registry
+                                if(strcmp(pos, "on") == 0){
+                                    hub.registry.child_switches[i] = 1;
+                                } else if(strcmp(pos, "off") == 0){
+                                    hub.registry.child_switches[i] = 0;
+                                }
                             }
                         }
-                        //manca l'updating dell'array child_switches
-                        //lo implemento dopo quando ho un sistema di notifica da parte del figlio che funziona
                         break;
                     case SWITCH_CHILD_COMMAND:
                         printf("command switch_child reached in hub\n");
@@ -299,6 +311,7 @@ void hub_info_command(hub* current_hub, char* info, size_t size){
         current_hub->state,
         current_hub->switches,
         registry );
+        
     //debug
     printf("hub info are created\n");
     }

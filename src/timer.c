@@ -204,7 +204,7 @@ int createProcessTimer(int num){
                             timer.switches = 1;
                             timer.state = 1;
                             timer.registry.begin_minutes = 0;
-                            timer.registry.end_minutes = 0
+                            timer.registry.end_minutes = 0;
                             printf("switched Timer %s\n", pos);
                         } else if (strcmp(pos, "off") == 0){
                             timer.switches = 0;
