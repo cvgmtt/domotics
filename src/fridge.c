@@ -1,10 +1,12 @@
     #include "fridge.h"
+    #include <time.h>
 
     fridge createFridge(int _perc, int _temp, int _thermostat){
         fridge fridge;
         fridge.state = 0;
         fridge.switches = 1;
-        fridge.registry.time_open = 0;
+        fridge.registry.delay = 0;
+        fridge.registry.time = 5;
         fridge.registry.perc = _perc;
         fridge.registry.temp = _temp;
         fridge.registry.thermostat = _thermostat;
@@ -93,17 +95,33 @@
                             break;
                         case SWITCH_COMMAND:
                             if (strcmp(pos, "open") == 0){
+                                //start counting open time
+                                if (fridge.state == 0) {
+                                    fridge.registry.time = time(NULL);
+                                }
                                 fridge.switches = 1;
                                 fridge.state = 1;
-                            }else if (strcmp(pos, "close") == 0){
+                            } else if (strcmp(pos, "close") == 0){
                                 fridge.switches = 0;
                                 fridge.state = 0;
+                                fridge.registry.time = 0;
                             }
-                            
+
                             break;
                         default:
                             break;
+                    }
+                    //update time passed in seconds since fridge was opened
+                    if (fridge.state == 1 && fridge.registry.time != 0) {
+                        time_t now = time(NULL);
+                        fridge.registry.time = (now - fridge.registry.time);
+                        if (fridge.registry.delay > 0 && fridge.registry.time >= fridge.registry.delay) {
+                            //automatically close the fridge after the delay time has passed
+                            fridge.state = 0;
+                            fridge.switches = 0;
+                            fridge.registry.time = 0;
                         }
+                    }
                 }
             }
         } else{
@@ -113,10 +131,11 @@
 
     void fridge_info_command(fridge* current_fridge, char* info, size_t size){
         snprintf(info, size,
-            "State: %d Switch: %d Registry: time_open=%d perc=%d temp=%d thermostat=%d id=%d parent_id=%d",
+            "State: %d Switch: %d Registry: time=%d delay=%d perc=%d temp=%d thermostat=%d id=%d parent_id=%d",
             current_fridge->state,
             current_fridge->switches,
-            current_fridge->registry.time_open,
+            (int)current_fridge->registry.time,
+            (int)current_fridge->registry.delay,
             current_fridge->registry.perc,
             current_fridge->registry.temp,
             current_fridge->registry.thermostat,

@@ -4,7 +4,8 @@
 #include "device.h"
 
 typedef struct registry_fridge{
-    int time_open;
+    time_t time;
+    time_t delay;
     int perc; //fill percentage
     int temp;
     int thermostat; //target temperature

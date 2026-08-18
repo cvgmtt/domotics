@@ -234,7 +234,7 @@ void switch_device(char* id, char* label, char* pos){
             snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", id);
             int device_pipe = open(pipename, O_WRONLY | O_NONBLOCK);
             if(device_pipe >= 0){
-                snprintf(message, sizeof(message), "switch %s %s", label, pos);
+                snprintf(message, sizeof(message), "switch %s", pos);
                 write(device_pipe, message, strlen(message) + 1);
                 close(device_pipe);
 
@@ -255,7 +255,7 @@ void switch_device(char* id, char* label, char* pos){
                 snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", id);
                 int device_pipe = open(pipename, O_WRONLY | O_NONBLOCK);
                 if(device_pipe >= 0){
-                    snprintf(message, sizeof(message), "switch %s %s", label, pos);
+                    snprintf(message, sizeof(message), "switch %s", pos);
                     write(device_pipe, message, strlen(message) + 1);
                     close(device_pipe);
 
@@ -297,7 +297,7 @@ void switch_device(char* id, char* label, char* pos){
             snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", id);
             int device_pipe = open(pipename, O_WRONLY | O_NONBLOCK);
             if(device_pipe >= 0){
-                snprintf(message, sizeof(message), "switch %s %s", label, pos);
+                snprintf(message, sizeof(message), "switch %s", pos);
                 write(device_pipe, message, strlen(message) + 1);
                 close(device_pipe);
 
@@ -349,7 +349,7 @@ void switch_device(char* id, char* label, char* pos){
             snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", id);
             int device_pipe = open(pipename, O_WRONLY | O_NONBLOCK);
             if(device_pipe >= 0){
-                snprintf(message, sizeof(message), "switch %s %s", label, pos);
+                snprintf(message, sizeof(message), "switch %s", pos);
                 write(device_pipe, message, strlen(message) + 1);
                 close(device_pipe);
 

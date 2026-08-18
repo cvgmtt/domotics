@@ -225,6 +225,7 @@ int createProcessHub(int num){
                         break;
 
                     case SWITCH_COMMAND:
+                    
                         //debug
                         printf("command switch reached in hub\n");
 
@@ -267,7 +268,9 @@ int createProcessHub(int num){
                         }
                         break;
                     case SWITCH_CHILD_COMMAND:
+                        //debug
                         printf("command switch_child reached in hub\n");
+                        
                         char message[50];
                         snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%s", id );
                         int child_pipe = open(pipename_child, O_WRONLY | O_NONBLOCK);
@@ -278,8 +281,9 @@ int createProcessHub(int num){
                             }
                             close(child_pipe);
                         }
-                        //manca l'updating dell'array child_switches
-                        //si aggiornano automaticamente gestendo il comando STATE_CHANGE (dovrebbe avere senso)
+                        //update the switches array of the registry
+                        int value = (strcmp(pos, "on") == 0) ? 1 : 0;
+                        hub.registry.child_switches[atoi(id)-1] = value;
                         break;
                     case STATE_CHANGE:
                         int child_state = atoi(pos);
@@ -311,7 +315,7 @@ void hub_info_command(hub* current_hub, char* info, size_t size){
         current_hub->state,
         current_hub->switches,
         registry );
-        
+
     //debug
     printf("hub info are created\n");
     }
