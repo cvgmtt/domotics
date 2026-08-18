@@ -2,34 +2,33 @@
 #include <unistd.h>
 
 
-FILE* initDevice(int fd[], int pipe){
-    close(fd[0]); 
-    int msg;
-    FILE* fp = fopen(".registry.txt", "a");
-    if(fp == NULL || pipe < 0){
-        msg = FAILURE;
-        write(fd[1], &msg, sizeof(msg));
-        close(fd[1]); 
-        exit(FAILURE);
-    }
-    msg = SUCCESS;
-    write(fd[1], &msg, sizeof(msg));
-    close(fd[1]); 
-    return fp;
-}
-
 int setup_device(int id, const char* type_name, int control_pipe[]) {
     srand(time(NULL));
     char pipename[32];
-    if (createPipe(id, pipename, sizeof(pipename)) == FAILURE) {
+    //create and open the named pipe 
+    if (createPipe(id, pipename, sizeof(pipename)) == PIPE_ERROR) {
         return -1;
     }
     int pipe_fd = open(pipename, O_RDWR);
-    FILE* fp = initDevice(control_pipe, pipe_fd);
-    if (fp != NULL) {
-        fprintf(fp, "%d, %d, %s, 0, \n", id, getpid(), type_name);
-        fclose(fp);
+    
+    //open registry file and send success/failure message to the controller through the unnamed pipe (control pipe)
+    FILE* fp = fopen(".registry.txt", "a");
+    close(control_pipe[0]); 
+    int msg;
+
+    if(fp == NULL || pipe_fd < 0){
+        msg = FAILURE;
+        write(control_pipe[1], &msg, sizeof(msg));
+        close(control_pipe[1]); 
+        exit(FAILURE);
     }
+
+    msg = SUCCESS;
+    write(control_pipe[1], &msg, sizeof(msg));
+    close(control_pipe); 
+    //write new row in registry
+    fprintf(fp, "%d, %d, %s, 0, \n", id, getpid(), type_name);
+    fclose(fp);
     return pipe_fd;
 }
 
@@ -58,8 +57,8 @@ int createPipe(int num, char* pipename, size_t size){
     if(mkfifo(pipename, 0644) == 0){
         return SUCCESS;
     }else{
-        perror("error in opening pipe \n");
-        return FAILURE;
+        printf("error in opening pipe \n");
+        return PIPE_ERROR;
     };
 }
 
@@ -79,6 +78,8 @@ void kill_device(int id){
         unlink(pipename); 
 
         exit(SUCCESS);
+    } else{
+        printf("error in opening controller pipe, device not deleted \n");
     }
 }
 
@@ -138,7 +139,7 @@ void delete_interaction_device(int id, int parent_id) {
     }
     kill_device(id);
 }
-
+//this function waits a maximum of 8 seconds for the confirmation of the deletion of an interaction device linked to a control device
 int wait_for_device_response(int my_id, char* response_buf, size_t buf_size) {
     char check_pipename[20];
     snprintf(check_pipename, sizeof(check_pipename), "/tmp/domotics_%d", my_id);
@@ -152,9 +153,10 @@ int wait_for_device_response(int my_id, char* response_buf, size_t buf_size) {
     FD_SET(check_pipe, &read_fds);
 
     struct timeval tv;
-    tv.tv_sec = 4;
+    tv.tv_sec = 8;
     tv.tv_usec = 0;
 
+    //select make sure that the control device is not stuck while waiting
     int activity = select(check_pipe + 1, &read_fds, NULL, NULL, &tv);
     
     int result = TIME_OUT;
@@ -176,42 +178,40 @@ void wait_function(){
 int getCommand(char* buf, char* id, char* pos, char* child_id){
     char* token = strtok(buf, " ");
     if(token != NULL){
-        if(strcmp(token, "new") == 0){
-            token = strtok(NULL, " ");
-            if(token != NULL){
-                char* id_temp = strtok(NULL, " ");
-                strcpy(id, id_temp);
-                if(strcmp(token, "parent") == 0){
-                    id_temp = strtok(NULL, " ");
-                    //in case the interaction device already had a controller device parent
-                    if(id_temp != NULL){
-                        strcpy(child_id, token);
-                        return CHANGE_PARENT_COMMAND;
-                    }
-                    return CHANGE_PARENT_COMMAND;
-                } else if(strcmp(token, "child") == 0){
-                    if(id_temp != NULL){
-                        strcpy(child_id, id_temp);
-                        return CHANGE_CHILD_COMMAND;
-                    } else{
-                        return INVALID_COMMAND;
-                    }
-                    
-                } else {
-                    return INVALID_COMMAND;
+        if(strcmp(token, "new_parent") == 0){
+            char* id_temp = strtok(NULL, " ");
+            if(id_temp != NULL){
+                strcpy(id, id_temp);    
+                id_temp = strtok(NULL, " ");
+                //in case the interaction device already had a controller device parent
+                if(id_temp != NULL){
+                    strcpy(child_id, id_temp);
                 }
-            } else {
+                return CHANGE_PARENT_COMMAND;
+            } else{
+                printf("invalid command, new control device not specified \n");
                 return INVALID_COMMAND;
-            }
+            } 
+        } else if(strcmp(token, "new_child") == 0){
+            char* id_temp = strtok(NULL, " ");
+            if(id_temp != NULL){
+                strcpy(child_id, id_temp);
+                return CHANGE_CHILD_COMMAND;
+            } else{
+                printf("invalid command, new child device not specified \n");
+                return INVALID_COMMAND;
+            }        
         } else if(strcmp(token, "self_delete") == 0){
             char* id_temp = strtok(NULL, " ");
             if(id_temp == NULL){
+                printf("invalid command, an id is expected \n");
                 return INVALID_COMMAND;
             }
             return SELF_DEL_COMMAND;
         } else if(strcmp(token, "child_delete") == 0){
             char* id_temp = strtok(NULL, " ");
             if(id_temp == NULL){
+                printf("invalid command, an id is expected \n");
                 return INVALID_COMMAND;
             }
             strcpy(child_id, id_temp);
@@ -224,7 +224,7 @@ int getCommand(char* buf, char* id, char* pos, char* child_id){
             strcpy(id, id_temp);
             strtok(NULL, " ");  
             char* pos_temp = strtok(NULL, " "); 
-            if(pos == NULL){
+            if(pos_temp == NULL){
                 return INVALID_COMMAND;
             }
             strcpy(pos, pos_temp);
@@ -252,5 +252,4 @@ int getCommand(char* buf, char* id, char* pos, char* child_id){
     } else{
         return INVALID_COMMAND;
     }
-
 }

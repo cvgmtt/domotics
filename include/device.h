@@ -17,9 +17,6 @@
 #include <time.h>
 #define MSG_SIZE 200
 
-
-FILE* initDevice(int fd[], int pipe);
-
 int checkSuccess(int fd[], pid_t pid);
 
 int createPipe(int num, char* pipename, size_t size);

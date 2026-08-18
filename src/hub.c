@@ -2,8 +2,8 @@
 
 hub createHub(){
     hub hub;
-    hub.state = 1;
-    hub.switches = 1;
+    hub.state = 0;
+    hub.switches = 0;
     hub.registry.child_num = 0;
     hub.registry.parent_id = 0;
     for(int i = 0; i < 20; i++){
@@ -15,20 +15,26 @@ hub createHub(){
 
 int createProcessHub(int num){
     hub hub = createHub();
+    //opening unnamed pipe for checking success in process creation
     int fd[2]; 
     if (pipe(fd) == -1) { 
-        printf("could not open pipe \n"); return FAILURE; 
+        printf("could not open pipe for checking success on process creation\n"); 
+        return PIPE_ERROR; 
     }
     pid_t pid = fork();
     
     if(pid < 0){
+        printf("could not create process \n");
         return FAILURE;
     } 
     if(pid == 0){
         hub.registry.id = num +1;
         
         int pipe = setup_device(hub.registry.id, "Hub", fd);
-        if (pipe < 0) exit(FAILURE);
+        if (pipe < 0) {
+            printf("could not open device named pipe\n"); 
+            exit(FAILURE);
+        }
         char buf[MSG_SIZE];
         int command;
         char id[10];
@@ -51,6 +57,8 @@ int createProcessHub(int num){
                     wait_function();
                 }
                 switch(command){
+                    //remove from hub array the id of the interaction device and send an ipc message to it so that it unlinks from the hub
+                    //this command is used when we want to link an interaction device already linked to another control device
                     case CHANGE_PARENT_COMMAND:
                         for(int i = 0; i < 20; i++){
                             if(hub.registry.child_id[i] == atoi(child_id)){
@@ -68,7 +76,7 @@ int createProcessHub(int num){
                         }
                         break;
 
-
+                    //this command is used to add an interaction device to the hub list, meaning that it just got linked
                     case CHANGE_CHILD_COMMAND:
                         for(int i = 0; i < 20; i++){
                             if(hub.registry.child_id[i] == -1){
@@ -79,9 +87,8 @@ int createProcessHub(int num){
                             }
                         }
                         break;
-                    
+                    //this command send a self delete message to all interaction device linnked to the hub and then deletes the hub itself
                     case SELF_DEL_COMMAND:
-                    //let's send the command to all interaction device linnked to the hub
                         for (int i = 0; i < 20; i++) {
                             if (hub.registry.child_id[i] != -1) {
                                 int target_child = hub.registry.child_id[i];
@@ -124,6 +131,7 @@ int createProcessHub(int num){
                         kill_device(hub.registry.id);
                         break;
 
+                    //this command deletes a specific child, but it follows a similar procedure as before
                     case CHILD_DEL_COMMAND:
                         snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%s", child_id);
                         char msg[MSG_SIZE];
@@ -185,7 +193,7 @@ void hub_info_command(hub* current_hub, char* info, size_t size){
     char registry[512];
     hub_registry_info(current_hub, registry, sizeof(registry));
     if(registry[0] == '\0'){
-        strcpy(registry, "error reading registry");
+        printf("error reading registry \n");
         return;
     }
     snprintf(info, size,
@@ -204,11 +212,7 @@ void hub_registry_info(hub* current_hub, char* registry, size_t size){
         if (i > 0) {
             len += snprintf(childs + len, sizeof(childs) - len, ",");
         }
-        if (current_hub->registry.child_id[i] != -1) {
-            len += snprintf(childs + len, sizeof(childs) - len, "%d", current_hub->registry.child_id[i]);
-        }else{
-            len += snprintf(childs + len, sizeof(childs) - len, "0");
-        }
+        len += snprintf(childs + len, sizeof(childs) - len, "%d", current_hub->registry.child_id[i]);
     }
 
     snprintf(registry, size,

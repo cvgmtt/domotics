@@ -12,12 +12,13 @@ int sigchld_pipe[2];
 void sigchld_handler(int sig){
     char byte = 1;
     if(write(sigchld_pipe[1], &byte, 1) < 0) {
-    }
+        printf("error in writing to sigchld_pipe, a process has crashed");
+    } 
 }
 
-int send_ipc_message(const char* target_id, const char* message) {
+int send_ipc_message(const char* id, const char* message) {
     char pipename[32];
-    snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", target_id);
+    snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", id);
     
     int fd = open(pipename, O_WRONLY | O_NONBLOCK);
     if (fd >= 0) {
@@ -40,6 +41,7 @@ int main(){
     controller.registry.num = 0;
     controller.registry.id = 0;
     
+    //create and initialize registry
     FILE* fp = fopen(".registry.txt", "w");
     if (fp == NULL) {
         printf("The file couldn't be opened.\n");
@@ -47,32 +49,40 @@ int main(){
     }
     fclose(fp);
 
+    //create controller pipe
     char *pipename = "/tmp/domotics_0";
     if(mkfifo(pipename, 0644) == 0){
     }else{
         perror("error in opening controller pipe\n");
-        return FAILURE;
+        return PIPE_ERROR;
     }
 
     int controller_pipe = open(pipename, O_RDWR);
     if (controller_pipe < 0) {
         perror("error in opening controller pipe\n");
-        return FAILURE;
+        return PIPE_ERROR;
     }
 
+    //creating sigchld pipe for checking crashed processes. setting to nonblock so that if multiple processes crash at the same time the program don't get stuck
     if (pipe(sigchld_pipe) == -1) {
         perror("could not open sigchld pipe\n");
-        return FAILURE;
+        return PIPE_ERROR;
     }
     fcntl(sigchld_pipe[0], F_SETFL, O_NONBLOCK);
     fcntl(sigchld_pipe[1], F_SETFL, O_NONBLOCK);
 
+    //in order to determine the higher limit of the descriptors to check
     int max_fd = controller_pipe;
-    if (STDIN_FILENO > max_fd) max_fd = STDIN_FILENO;
-    if (sigchld_pipe[0] > max_fd) max_fd = sigchld_pipe[0];
+    if (STDIN_FILENO > max_fd) {
+        max_fd = STDIN_FILENO;
+    }
+    if (sigchld_pipe[0] > max_fd){
+        max_fd = sigchld_pipe[0];
+    } 
     fd_set read_fds;
 
     while(1){
+        //checks whether a child process has crashed
         signal(SIGCHLD, sigchld_handler);
         handle_crashed_devices();
 
@@ -84,15 +94,19 @@ int main(){
         FD_SET(controller_pipe, &read_fds);
         FD_SET(sigchld_pipe[0], &read_fds);
 
+        //select pause the execution of the program till one of the pipe monitored receive something. no clock cycles consumption
         if (select(max_fd + 1, &read_fds, NULL, NULL, NULL) < 0) {
             continue; 
         }
 
+        //clean sigchld pipe
+
         if (FD_ISSET(sigchld_pipe[0], &read_fds)) {
-            char drain[64];
-            while (read(sigchld_pipe[0], drain, sizeof(drain)) > 0);
+            char temp[10];
+            while (read(sigchld_pipe[0], temp, sizeof(temp)) > 0);
         }
 
+        //handle messages sent to controller
         if (FD_ISSET(controller_pipe, &read_fds)) {
             char buffer[MSG_SIZE];
             memset(buffer, 0, sizeof(buffer));
@@ -109,6 +123,7 @@ int main(){
             }
         }
 
+        //terminal input
         if (FD_ISSET(STDIN_FILENO, &read_fds)) {
             char terminal_input[MSG_SIZE];
             if (fgets(terminal_input, sizeof(terminal_input), stdin) == NULL) {
@@ -143,7 +158,7 @@ int main(){
                             continue;
                         }
 
-                        if (creation_success == FAILURE) {
+                        if (creation_success == FAILURE || creation_success == PIPE_ERROR) {
                             printf("failed to create %s device\n", token);
                         } else {
                             printf("device created correctly\n");
@@ -184,6 +199,8 @@ int main(){
                                 printf("control device has reached its maximum capacity\n");
                             } else if(result == FAILURE){
                                 printf("error in linking\n");
+                            } else if(result == INVALID_COMMAND){
+                                printf("invalid command\n");
                             }
                         } else{
                             printf("wrong input. linking requires two valid ids\n");
@@ -240,15 +257,17 @@ int main(){
 } 
 
 void list(char* list_info){
+    int count = 0;
     FILE *fp = fopen(".registry.txt", "r");
     if (fp != NULL) {
         char row[200];
         char info[MSG_SIZE];
         memset(info, 0, sizeof(info));
-        printf("retreiving devices information, please wait \n");
+        printf("retriving devices information, this may take a while depending on the number of devices.. \n");
         while (fgets(row, sizeof(row), fp) != NULL) {
             char row_copy[200];
             strcpy(row_copy, row);
+            count++;
             
             char* current_id = strtok(row_copy, ", ");
             if (current_id != NULL) {
@@ -259,14 +278,22 @@ void list(char* list_info){
                 memset(info, 0, sizeof(info));
             }
         }
+        if(count == 0){
+            printf("no devices active at the moment, add one using the add command \n");
+        }
         fclose(fp);
     } else {
         perror("error in opening registry file\n");
     }
 }
 
+//this function updates the registry.txt file and sends ipc messages to interaction and control devices.
 int link_command(char* child_id, char* parent_id){
     char parent_to_change[10] = "0"; 
+    if(strcmp(child_id, parent_id) == 0){
+        printf("first and second id provided are the same.\n");
+        return INVALID_COMMAND;
+    }
 
     int result = check_parents(parent_to_change, child_id, parent_id);
 
@@ -274,6 +301,8 @@ int link_command(char* child_id, char* parent_id){
         return ALREADY_LINKED;
     } else if (result == CONTROL_DEVICE_FULL){
         return CONTROL_DEVICE_FULL;
+    } else if (result == INVALID_COMMAND){
+        return INVALID_COMMAND;
     } else if(result == FAILURE){
         return FAILURE;
     }
@@ -306,29 +335,26 @@ int link_command(char* child_id, char* parent_id){
                 children_str = "";        
             }
             
+            //first case: the device is the interaction device
             if (strcmp(current_id, child_id) == 0) {
-                if(strcmp(type_str, "Hub") == 0 || strcmp(type_str, "Timer") == 0){
-                    printf("first id is not an interaction device\n");
-                    fclose(fp);
-                    fclose(temp);
-                    return FAILURE;
-                }
-                
-                // Refactor: Uso di send_ipc_message al posto di open manuali multiple
+                //if it was not linked to anything, just send the command new parent to the interaction device
                 if(strcmp(parent_to_change, "0") == 0){
-                    snprintf(msg, sizeof(msg), "new parent %s", parent_id);
+                    snprintf(msg, sizeof(msg), "new_parent %s", parent_id);
                     send_ipc_message(child_id, msg);
                 } else{
-                    snprintf(msg, sizeof(msg), "new parent %s %s", parent_id, child_id);
+                    //if it was linked to another control device, other than sending the command to the interaction device
+                    //send an ipc command to the old control device to unlink it
+                    snprintf(msg, sizeof(msg), "new_parent %s %s", parent_id, child_id);
                     send_ipc_message(parent_to_change, msg);
                     
-                    snprintf(msg, sizeof(msg), "new parent %s", parent_id);
+                    snprintf(msg, sizeof(msg), "new_parent %s", parent_id);
                     send_ipc_message(child_id, msg);
                 }
 
                 fprintf(temp, "%s, %s, %s, %s, %s\n", current_id, pid_str, type_str, parent_id, children_str);
             } 
-            //modify old parent if there is one
+            //second case: the device is the old control device to forget (if there is one). 
+            //we need to remove from the registry the interaction device id from the list of children of the old control device 
             else if (strcmp(parent_to_change, "0") != 0 && strcmp(current_id, parent_to_change) == 0) {
                 char new_children_str[200] = ""; 
                 char* child_token = strtok(children_str, ", ");
@@ -341,24 +367,17 @@ int link_command(char* child_id, char* parent_id){
                 }
                 fprintf(temp, "%s, %s, %s, %s, %s\n", current_id, pid_str, type_str, old_parent_str, new_children_str);
             } 
-            //modify new parent
+            //third case: the device is the new control device
             else if (strcmp(current_id, parent_id) == 0) {
-                if(strcmp(type_str, "Hub") == 0 || strcmp(type_str, "Timer") == 0){
-                    snprintf(msg, sizeof(msg), "new child %s", child_id);
-                    send_ipc_message(parent_id, msg);
+                snprintf(msg, sizeof(msg), "new_child %s", child_id);
+                send_ipc_message(parent_id, msg);
 
-                    if(strcmp(type_str, "Hub") == 0){
-                        row[strcspn(row, "\n")] = '\0';
-                        fprintf(temp, "%s%s, \n", row, child_id);
-                    } else {
-                        fprintf(temp, "%s, %s, %s, 0, %s, \n", current_id, pid_str, type_str, child_id);
-                    }
-                } else{
-                    printf("second id is not a control device\n");
-                    fclose(fp);
-                    fclose(temp);
-                    return FAILURE;
-                } 
+                if(strcmp(type_str, "Hub") == 0){
+                    row[strcspn(row, "\n")] = '\0';
+                    fprintf(temp, "%s%s, \n", row, child_id);
+                } else {
+                    fprintf(temp, "%s, %s, %s, 0, %s, \n", current_id, pid_str, type_str, child_id);
+                }
             } else {
                 fprintf(temp, "%s", row); 
             }
@@ -373,6 +392,7 @@ int link_command(char* child_id, char* parent_id){
     return SUCCESS;
 }
 
+//this function checks whether the devices are respectivly interaction device and control device, and if the control device has still space for children devices.
 int check_parents(char* parent_to_change, char* child_id, char* parent_id){
     int result = CONTROL_DEVICE_INCOMPLETE;
     FILE* fp_scan = fopen(".registry.txt", "r");
@@ -387,10 +407,20 @@ int check_parents(char* parent_to_change, char* child_id, char* parent_id){
             char* old_p = strtok(NULL, ", "); 
             
             if (curr != NULL && strcmp(curr, child_id) == 0) {
+                if(strcmp(type_str, "Hub") == 0 || strcmp(type_str, "Timer") == 0){
+                    printf("first id is not an interaction device\n");
+                    fclose(fp_scan);
+                    return INVALID_COMMAND;
+                }
                 if (old_p != NULL) {
                     strcpy(parent_to_change, old_p);
                 }
             } else if (curr != NULL && strcmp(curr, parent_id) == 0) {
+                if(strcmp(type_str, "Bulb") == 0 || strcmp(type_str, "Window") == 0 || strcmp(type_str, "Fridge") == 0){
+                    printf("second id is not a control device\n");
+                    fclose(fp_scan);
+                    return INVALID_COMMAND;
+                }
                 char* children_str = strtok(NULL, "\n"); // lista figli
                 int child_count = 0;
                 if (children_str != NULL) {
@@ -517,11 +547,12 @@ void delete_device_from_registry(char* id_to_delete) {
         strcpy(row_copy, row); 
         
         char* current_id = strtok(row_copy, ", ");
+        //here we delete the row of the device
         if (current_id != NULL) {
             if (strcmp(current_id, id_to_delete) == 0) {
                 continue; 
             }
-            
+        //else, we collect the infos 
             char* pid_str = strtok(NULL, ", ");
             char* type_str = strtok(NULL, ", ");
             char* parent_str = strtok(NULL, ", ");
@@ -531,6 +562,7 @@ void delete_device_from_registry(char* id_to_delete) {
                 children_str = "";        
             }
 
+            //here we check whether the device deleted was a child of a control device, if it is we do not add its id to new_children_str, so that it does not appear in the new registry file
             if (strcmp(type_str, "Hub") == 0 || strcmp(type_str, "Timer") == 0) {
                 char new_children_str[200] = ""; 
                 char* child_token = strtok(children_str, ", ");
@@ -565,8 +597,7 @@ int del_command(char* id){
         char* type = strtok(NULL, ", "); 
         char* parent_id = strtok(NULL, ", ");
         char msg[MSG_SIZE];
-        
-        // Refactor: Invio messaggi con la funzione unificata
+        //check what type of device it is. if control device or interaction device not linked to anything send a self delete, else send a child delete
         if(strcmp(type, "Hub") == 0 || strcmp(type, "Timer") == 0 || strcmp(parent_id, "0") == 0){
             snprintf(msg, sizeof(msg), "self_delete %s", id);
             if (send_ipc_message(id, msg) == SUCCESS) return SUCCESS;
@@ -578,11 +609,13 @@ int del_command(char* id){
         printf("couldn't send the delete command\n");
         return FAILURE;
     }else{
+        printf("device row not found in registry \n");
         return FAILURE;
     }
 }
 
 void handle_crashed_devices() {
+    //collect the pid of the crashed device if there is one
     int status;
     pid_t pid;
     while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
@@ -592,14 +625,15 @@ void handle_crashed_devices() {
         }
         char id[10];
         memset(id, 0, sizeof(id));
-        char row[256];
+        char row[200];
         memset(row, 0, sizeof(row));
         
+        //extract corresponding id and row in registry
         FILE* fp = fopen(".registry.txt", "r");
         if (fp) {
-            char temp_row[256];
+            char temp_row[200];
             while (fgets(temp_row, sizeof(temp_row), fp) != NULL) {
-                char row_copy[256];
+                char row_copy[200];
                 strcpy(row_copy, temp_row);
                 char* curr_id = strtok(row_copy, ", ");
                 char* curr_pid = strtok(NULL, ", ");
@@ -627,12 +661,14 @@ void handle_crashed_devices() {
                 children_str = "";
             }
 
+            //if timer or hub it checks whether it had children, and if it did, it links them back to the controller
             if (strcmp(type, "Hub") == 0 || strcmp(type, "Timer") == 0) {
                 if (strlen(children_str) > 0) {
                     char children_ids[20][10];
                     int children_count = 0;
 
                     char* child_token = strtok(children_str, ", ");
+                    //now we populate children ids array making sure that we cut out , and spaces or \n
                     while (child_token != NULL && children_count < 20) {
                         char clean_child[10];
                         memset(clean_child, 0, sizeof(clean_child));
@@ -643,9 +679,7 @@ void handle_crashed_devices() {
                         child_token = strtok(NULL, ", ");
                     }
 
-                    // Refactor: Uso di send_ipc_message invece delle varie chiamate a open e write
                     for (int i = 0; i < children_count; i++) {
-                        send_ipc_message(children_ids[i], "new parent 0");
                         link_command(children_ids[i], "0");
                     }
                 }
@@ -653,6 +687,7 @@ void handle_crashed_devices() {
             
             delete_device_from_registry(id);
             
+            //remove the named pipe
             char pipename[32];
             snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", id);
             unlink(pipename);

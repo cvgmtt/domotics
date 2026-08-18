@@ -164,7 +164,7 @@ void timer_info_command(timer* current_timer, char* info, size_t size){
 //gets the info of the registry of the timer and returns it as a string
 void timer_registry_info(timer* current_timer,  char* info, size_t size){
     snprintf(info, size,
-        "Id=%d, Parent id: %d, Child: %d",
+        "Id=%d, Parent id: %d, Child id: %d",
         current_timer->registry.id,
         current_timer->registry.parent_id,
         current_timer->registry.child_id
