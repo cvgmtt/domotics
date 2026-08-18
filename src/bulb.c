@@ -3,7 +3,7 @@
 bulb createBulb(){
     bulb bulb;
     bulb.state = 0;
-    bulb.switches = 1;
+    bulb.switches = 0;
     bulb.registry.time = 0.0;
     bulb.registry.parent_id = 0;
     return bulb;

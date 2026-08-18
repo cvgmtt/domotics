@@ -214,8 +214,8 @@ int createProcessTimer(int num){
 
                             printf("switched Timer%s\n", pos);
                         }
+
                         //updating child
-                        
                         if(timer.registry.child_id > 0){
                             snprintf(pipename_child, sizeof(pipename_child), "/t,mp/domotics_%d", timer.registry.child_id );
                             child_pipe = open(pipename_child, O_WRONLY | O_NONBLOCK);
@@ -228,8 +228,6 @@ int createProcessTimer(int num){
                                 close(child_pipe);
                             }
                         }
-                        //manca l'updating dell'array child_switches
-                        //lo implemento dopo quando ho un sistema di notifica da parte del figlio che funziona
                         break;
                     case SWITCH_CHILD_COMMAND:
                         printf("command switch_child reached in timer\n");

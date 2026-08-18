@@ -250,7 +250,7 @@ void switch_device(char* id, char* label, char* pos){
             //debug
             printf("value of parent: %s\n", parent_id);
 
-            if(parent_id == 0){
+            if(strcmp(parent_id, "0") == 0){
                 //send message to bulb device itself
                 snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", id);
                 int device_pipe = open(pipename, O_WRONLY | O_NONBLOCK);
@@ -288,11 +288,24 @@ void switch_device(char* id, char* label, char* pos){
     }else if ((strcmp(label, "open") == 0 || strcmp(label, "close") == 0) && strcmp(type, "Fridge") == 0){
         //switch of a fridge device
 
+        //if the command is "close off" or "open on" send pos on, otherwise send pos off
+        char command[100];
+        snprintf(command, sizeof(command), "%s %s", label, pos);
+        
+        //debgug
+        printf("command: %s \n", command);
+        
+        if(strcmp(command, "close off") == 0 || strcmp(command, "open on") == 0){
+            strcpy(pos, "on");
+        } else{
+            strcpy(pos, "off");
+        }
+
         //debug
         printf("value of parent: %s\n", parent_id);
 
         //check if parent exists or not, if it does send the command to the parent which then forwards to the child 
-        if(parent_id == 0){
+        if(strcmp(parent_id, "0") == 0){
             //send message to fridge device itself
             snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", id);
             int device_pipe = open(pipename, O_WRONLY | O_NONBLOCK);
@@ -344,7 +357,7 @@ void switch_device(char* id, char* label, char* pos){
         }
 
         //check if parent exists or not, if it does send the command to the parent which then forwards to the child 
-        if(parent_id == 0){
+        if(strcmp(parent_id, "0") == 0){
             //send message to window device itself
             snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", id);
             int device_pipe = open(pipename, O_WRONLY | O_NONBLOCK);
