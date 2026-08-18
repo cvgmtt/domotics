@@ -26,11 +26,11 @@ $(TARGET): $(OBJECTS)
 	$(CC) $(CFLAGS) $^ -o $@
 
 run: build
-	@echo "Running $(TARGET)"
 	./$(TARGET)
 
 clean:
 	rm -rf $(OBJDIR) $(BINDIR)
 	@if [ -n "$(FIFOS)" ]; then rm -f $(FIFOS); fi
 	-find . -maxdepth 1 -type p -name '*.fifo' -exec rm -f {} + || true
-	@echo "Cleaned build artifacts and any .fifo named pipes"
+	rm -f /tmp/domotics_*
+	@echo "Cleaned build artifacts, local .fifo files, and /tmp/domotics_* named pipes"
