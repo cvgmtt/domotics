@@ -98,9 +98,6 @@ int createProcessBulb(int num){
                             bulb.switches = 0;
                             bulb.state = 0;
                         }
-                        //notifies father
-                        snprintf(pipename_father, sizeof(pipename_father), "/tmp/domotics_%d", bulb.registry.parent_id);
-                        notify_parent(pipename_father, window.state);
                         break;
                     default:
                         break;                    

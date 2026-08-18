@@ -91,15 +91,13 @@ int createProcessWindow(int num){
                         break;
                     case SWITCH_COMMAND:
                         if (strcmp(pos, "open") == 0){
-                            window.switches = 1;
                             window.state = 1;
-                        }else if (strcmp(pos, "close") == 0){
                             window.switches = 0;
+                        }else if (strcmp(pos, "close") == 0){
                             window.state = 0;
+                            window.switches = 0;
                         }
-                        //notifies father
-                        snprintf(pipename_father, sizeof(pipename_father), "/tmp/domotics_%d", window.registry.parent_id);
-                        notify_parent(pipename_father, window.state);
+                    
                         break;
                     default:
                         break;

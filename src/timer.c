@@ -203,10 +203,15 @@ int createProcessTimer(int num){
                         if (strcmp(pos, "on") == 0){
                             timer.switches = 1;
                             timer.state = 1;
+                            timer.registry.begin_minutes = 0;
+                            timer.registry.end_minutes = 0
                             printf("switched Timer %s\n", pos);
                         } else if (strcmp(pos, "off") == 0){
                             timer.switches = 0;
                             timer.state = 0;
+                            timer.registry.end_minutes = timer.registry.end_minutes;
+                            timer.registry.begin_minutes = 0;
+
                             printf("switched Timer%s\n", pos);
                         }
                         //updating child
@@ -238,6 +243,7 @@ int createProcessTimer(int num){
                             }
                             close(child_pipe);
                         }
+                        
                         //manca l'updating dell'array child_switches
                         //lo implemento dopo quando ho un sistema di notifica da parte del figlio che funziona
                         break;

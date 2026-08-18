@@ -99,9 +99,7 @@
                                 fridge.switches = 0;
                                 fridge.state = 0;
                             }
-                            //notifies father
-                            snprintf(pipename_father, sizeof(pipename_father), "/tmp/domotics_%d", fridge.registry.parent_id);
-                            notify_parent(pipename_father, window.state);
+                            
                             break;
                         default:
                             break;

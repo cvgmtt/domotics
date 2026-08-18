@@ -85,18 +85,6 @@ void child_info_command(char* pipename_child, char* pipename_parent, char* respo
     close(child_pipe);
 }
 
-void notify_parent(char* pipename, int state){
-    char message[50];
-    int father_pipe = open(pipename, O_WRONLY | O_NONBLOCK);
-    if (father_pipe >= 0){
-        snprintf(message, sizeof(message), "state %d", state);
-        if (write(father_pipe, message, strlen(message) + 1) < 0) {
-            perror("error writing father pipe");
-        }
-        close(child_pipe);
-    }
-}
-
 int getCommand(char* buf, char* id, char* pos, char* child_id){
     char* token = strtok(buf, " ");
     if(token != NULL){
