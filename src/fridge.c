@@ -36,10 +36,12 @@ int createProcessFridge(int num){
         char id[10];
         char pos[10];
         char child_id[10];
+        time_t start_time = 0;
         
         while(1){
             memset(buf, 0, sizeof(buf));
             int bytes_read = read(pipe, buf, sizeof(buf));
+            
             char info[MSG_SIZE];
             memset(info, 0, sizeof(info));
             char buf_copy[MSG_SIZE];
@@ -47,9 +49,9 @@ int createProcessFridge(int num){
 
 
             //update time passed in seconds since fridge was opened
-            if (fridge.state == 1 && fridge.registry.time != 0) {
+            if (fridge.state == 1 && start_time != 0) {
                 time_t now = time(NULL);
-                fridge.registry.time = (now - fridge.registry.time);
+                fridge.registry.time = (now - start_time);
                 if (fridge.registry.delay > 0 && fridge.registry.time >= fridge.registry.delay) {
                     //automatically close the fridge after the delay time has passed
                     fridge.state = 0;
@@ -78,11 +80,13 @@ int createProcessFridge(int num){
                         if (strcmp(pos, "on") == 0){
                             //start counting open time
                             if (fridge.state == 0) {
-                                fridge.registry.time = time(NULL);
+                                start_time = time(NULL);
+                                fridge.registry.time = 0;
                             }
                             fridge.switches = 1;
                             fridge.state = 1;
                         } else if (strcmp(pos, "off") == 0){
+                            start_time = 0;
                             fridge.switches = 0;
                             fridge.state = 0;
                             fridge.registry.time = 0;
