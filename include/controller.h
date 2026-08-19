@@ -6,6 +6,7 @@
 #include "window.h"
 #include "timer.h"
 #include "bulb.h"
+#define MSG_SIZE 200
 
 typedef struct registry{
     int num;
@@ -34,4 +35,7 @@ void delete_device_from_registry(char* id_to_delete);
 void get_info(char* id, char* info);
 
 void get_device_row(char* id, char* row_copy);
+void sigchld_handler(int sig);
+void handle_crashed_devices();
+int send_ipc_message(const char* target_id, const char* message); 
 #endif

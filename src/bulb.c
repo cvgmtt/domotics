@@ -1,4 +1,5 @@
-#include "../include/bulb.h"
+#include <bulb.h>
+
 
 bulb createBulb(){
     bulb bulb;
@@ -13,7 +14,8 @@ int createProcessBulb(int num){
     bulb bulb = createBulb();
     int fd[2]; 
     if (pipe(fd) == -1) { 
-        perror("could not open pipe"); return FAILURE; 
+        printf("could not open pipe 1n"); 
+        return FAILURE; 
     }
     pid_t pid = fork();
     if(pid < 0){
@@ -22,26 +24,11 @@ int createProcessBulb(int num){
     
     if(pid == 0){
         bulb.registry.id = num + 1;
-        int success = FAILURE;
-        char pipename[20];
-        do{
-            success = createPipe(bulb.registry.id, pipename, sizeof(pipename));
-        } while (success == FAILURE);
-
-        //with O_RDONLY it blocks the cpu if you have many processes
-        int pipe = open(pipename, O_RDWR);
         
-        FILE* fp = initDevice(fd, pipe);
-        pid_t child_pid = getpid();
-        int child_pid_int = (int) child_pid;
-        fprintf(fp,"%d, %d, Bulb, 0, \n", bulb.registry.id, child_pid_int);
-        fclose(fp);
+        int pipe = setup_device(bulb.registry.id, "Bulb", fd);
+        if (pipe < 0) exit(FAILURE);
 
-        //pipe of the controller device to send the info of the bulb when requested
-        char controller_pipename[20];
-        snprintf(controller_pipename, sizeof(controller_pipename), "/tmp/domotics_0");
-
-        char buf[50];        
+        char buf[MSG_SIZE];        
         int command;
         char id[10];
         char pos[10];
@@ -50,45 +37,26 @@ int createProcessBulb(int num){
         while(1){
             memset(buf, 0, sizeof(buf));
             int bytes_read = read(pipe, buf, sizeof(buf));
-            char info[100];
+            char info[MSG_SIZE];
+            memset(info, 0, sizeof(info));
+            char buf_copy[MSG_SIZE];
+            memcpy(buf_copy, buf, MSG_SIZE);
 
             if(bytes_read > 0){
-                printf("%s \n", buf);
-                command = getCommand(buf, id, pos, child_id);
+                command = getCommand(buf_copy, id, pos, child_id);
+                if (command != INVALID_COMMAND) {
+                    wait_function();
+                }
                 switch(command){
                     case CHANGE_PARENT_COMMAND:
-                        printf("got in bulb change parent command \n");
                         bulb.registry.parent_id = atoi(id);
                         break;
                     case SELF_DEL_COMMAND:
-                        if(bulb.registry.parent_id != 0){
-                            char pipename_parent[20];
-                            snprintf(pipename_parent, sizeof(pipename_parent), "/tmp/domotics_%d", bulb.registry.parent_id);
-                            if(confirm_del(pipename_parent) == SUCCESS){
-                                kill_device(bulb.registry.id);
-                                break;
-                            } else{
-                                printf("error in deleting device with id %d", bulb.registry.id);
-                                break;
-                            }
-                        }
-                        kill_device(bulb.registry.id);
+                        delete_interaction_device(bulb.registry.id, bulb.registry.parent_id);
                         break;
-
                     case SELF_INFO_COMMAND:
-                        printf("got in bulb self info command \n");
                         bulb_info_command(&bulb, info, sizeof(info));
-                        if(strcmp(info, "") != 0){
-                            int controller_pipe = open(controller_pipename, O_WRONLY);
-                            if (controller_pipe < 0) {
-                                perror("open controller pipe");
-                                break;
-                            }
-                            if (write(controller_pipe, info, strlen(info) + 1) < 0) {
-                                perror("write controller pipe");
-                            }
-                            close(controller_pipe);
-                        }
+                        send_info_to_controller(info);
                         break;
                     case SWITCH_COMMAND:
                         if (strcmp(pos, "on") == 0){
@@ -111,9 +79,10 @@ int createProcessBulb(int num){
 
 void bulb_info_command(bulb* current_bulb, char* info, size_t size){
     snprintf(info, size,
-        "State: %d Switch: %d Time: %d Parent: %d",
+        "State: %d, Switch: %d, Id: %d, Parent id: %d, Time: %d",
         current_bulb->state,
         current_bulb->switches,
-        current_bulb->registry.time,
-        current_bulb->registry.parent_id);
+        current_bulb->registry.id,
+        current_bulb->registry.parent_id,
+        current_bulb->registry.time);
 }

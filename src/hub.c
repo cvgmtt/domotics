@@ -2,8 +2,8 @@
 
 hub createHub(){
     hub hub;
-    hub.state = 1; //capisci se va bene
-    hub.switches = 1;
+    hub.state = 0;
+    hub.switches = 0;
     hub.registry.child_num = 0;
     hub.registry.parent_id = 0;
     for(int i = 0; i < 20; i++){
@@ -15,48 +15,50 @@ hub createHub(){
 
 int createProcessHub(int num){
     hub hub = createHub();
-    int fd[2]; // fd[0] is the read end, fd[1] is the write end
+    //opening unnamed pipe for checking success in process creation
+    int fd[2]; 
     if (pipe(fd) == -1) { 
-        perror("could not open pipe"); return FAILURE; 
+        printf("could not open pipe for checking success on process creation\n"); 
+        return PIPE_ERROR; 
     }
     pid_t pid = fork();
     
     if(pid < 0){
+        printf("could not create process \n");
         return FAILURE;
     } 
     if(pid == 0){
         hub.registry.id = num +1;
-        char pipename[20];
-        int success = FAILURE;        
-        do{
-            success = createPipe(hub.registry.id, pipename, sizeof(pipename));
-        } while (success == FAILURE);
-
-        int pipe = open(pipename, O_RDWR);
-  
-
-
-        FILE* fp = initDevice(fd, pipe);
-        pid_t child_pid = getpid();
-        int child_pid_int = (int) child_pid;
-        fprintf(fp,"%d, %d, Hub, 0, \n", hub.registry.id, child_pid_int);
-        fclose(fp);
-        char buf[50];
+        
+        int pipe = setup_device(hub.registry.id, "Hub", fd);
+        if (pipe < 0) {
+            printf("could not open device named pipe\n"); 
+            exit(FAILURE);
+        }
+        char buf[MSG_SIZE];
         int command;
         char id[10];
         char pos[10];
         char child_id[10];
         char pipename_child[20];
-        char controller_pipename[20] = "/tmp/domotics_0";
         char pipename_parent[20];
 
         while(1){
             memset(buf, 0, sizeof(buf));
             int bytes_read = read(pipe, buf, sizeof(buf));
+            char info[MSG_SIZE];
+            memset(info, 0, sizeof(info));
+            char buf_copy[MSG_SIZE];
+            memcpy(buf_copy, buf, MSG_SIZE);
             if(bytes_read > 0){
-                command = getCommand(buf, id, pos, child_id);
-                char info[512];
+                command = getCommand(buf_copy, id, pos, child_id);
+                
+                if (command != INVALID_COMMAND) {
+                    wait_function();
+                }
                 switch(command){
+                    //remove from hub array the id of the interaction device and send an ipc message to it so that it unlinks from the hub
+                    //this command is used when we want to link an interaction device already linked to another control device
                     case CHANGE_PARENT_COMMAND:
                         for(int i = 0; i < 20; i++){
                             if(hub.registry.child_id[i] == atoi(child_id)){
@@ -65,163 +67,117 @@ int createProcessHub(int num){
                                 hub.registry.child_num--;
                                 snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%s", child_id);
                                 int child_pipe = open(pipename_child, O_WRONLY | O_NONBLOCK);
-                                write(child_pipe, buf, sizeof(buf));
-                                close(child_pipe);
+                                if (child_pipe != -1) {
+                                    write(child_pipe, buf, sizeof(buf));
+                                    close(child_pipe);
+                                }
                                 break;
                             }
                         }
                         break;
 
-
+                    //this command is used to add an interaction device to the hub list, meaning that it just got linked
                     case CHANGE_CHILD_COMMAND:
                         for(int i = 0; i < 20; i++){
                             if(hub.registry.child_id[i] == -1){
                                 hub.registry.child_id[i] = atoi(child_id);
                                 hub.registry.child_switches[i] = hub.switches;
                                 hub.registry.child_num++;
-                                printf("new child_num%d \n", hub.registry.child_num);
                                 break;
                             }
                         }
                         break;
-                    
+                    //this command send a self delete message to all interaction device linnked to the hub and then deletes the hub itself
                     case SELF_DEL_COMMAND:
-                        for(int i = 0; i < 20; i++){
-                            if(hub.registry.child_id[i] != -1){
-                                snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%d", hub.registry.child_id[i]);
-                                char msg[20];
-                                snprintf(msg, sizeof(msg), "self_delete %d", hub.registry.child_id[i]);
-                                int out_pipe = open(pipename_child, O_WRONLY);
-                                if(out_pipe != -1){
-                                    write(out_pipe, msg, sizeof(msg));
-                                    close(out_pipe);
-                                } else{
-                                    printf("couldn't open the pipe of the device to check whether interaction device was deleted");
-                                    continue;
-                                }
+                        for (int i = 0; i < 20; i++) {
+                            if (hub.registry.child_id[i] != -1) {
+                                int target_child = hub.registry.child_id[i];
                                 
-                                char check_pipename[20];
-                                snprintf(check_pipename, sizeof(check_pipename), "/tmp/domotics_%d", hub.registry.id);
-                                int check_pipe = open(check_pipename, O_RDONLY | O_NONBLOCK);
-                                if(check_pipe != -1){
-                                    fd_set read_fds;
-                                    FD_ZERO(&read_fds);
-                                    FD_SET(check_pipe, &read_fds);
-
-                                    //max timeout
-                                    struct timeval tv;
-                                    tv.tv_sec = 1;
-                                    tv.tv_usec = 0;
-
-                                    int activity = select(check_pipe + 1, &read_fds, NULL, NULL, &tv);
-
-                                    if(activity > 0){
-                                        bytes_read = read(check_pipe, msg, sizeof(msg));
-                                        if (bytes_read > 0){
-                                            close(check_pipe);
-                                            hub.registry.child_id[i] = -1;
-                                            hub.registry.child_switches[i] = -1;
-                                            hub.registry.child_num--;
-                                        } else{
-                                            close(check_pipe);
-                                        }
-                                    } else if (activity == 0){
-                                        close(check_pipe);
-                                        printf("couldn't delete child device, therefore not deleting control device");
-                                    } else{
-                                        close(check_pipe);
-                                    }
-                                } else{
-                                    printf("couldn't open the pipe of the device to check whether interaction device was deleted");
+                                char pipename_child[32];
+                                snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%d", target_child);
+                                char msg[MSG_SIZE];
+                                memset(msg, 0, sizeof(msg));
+                                snprintf(msg, sizeof(msg), "self_delete %d", target_child);
+                                
+                                int target_pipe = open(pipename_child, O_WRONLY | O_NONBLOCK);
+                                if (target_pipe != -1) {
+                                    write(target_pipe, msg, sizeof(msg));
+                                    close(target_pipe);
+                                } else {
+                                    printf("couldn't open the pipe of device %d, assuming it's already terminated.\n", target_child);
                                 }
                             }
                         }
                         
-                        //if no children kills it immediatly
-                        if(hub.registry.child_num == 0){
-                            kill_device(hub.registry.id);
-                            break;
-                        } else{
-                            printf("couldn't delete all child devices, therefore not deleting control device");
-                            break;
+                        //let's collect the asnwers of devices
+                        for (int i = 0; i < 20; i++) {
+                            if (hub.registry.child_id[i] != -1) {
+                                int target_child = hub.registry.child_id[i];
+                                char response[MSG_SIZE];
+                                
+                                int result = wait_for_device_response(hub.registry.id, response, sizeof(response));
+                                if (result == TIME_OUT) {
+                                    printf("the child device %d didn't respond in time, assuming it's already terminated.\n", target_child);
+                                } else if (result == PIPE_ERROR) {
+                                    printf("error opening hub pipe for child %d.\n", target_child);
+                                }
+                                
+                                hub.registry.child_id[i] = -1;
+                                hub.registry.child_switches[i] = -1;
+                                hub.registry.child_num--;
+                            }
                         }
+                        
+                        kill_device(hub.registry.id);
+                        break;
 
+                    //this command deletes a specific child, but it follows a similar procedure as before
                     case CHILD_DEL_COMMAND:
                         snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%s", child_id);
-                        char msg[20];
+                        char msg[MSG_SIZE];
+                        memset(msg, 0, sizeof(msg));
                         snprintf(msg, sizeof(msg), "self_delete %s", child_id);
-                        int out_pipe = open(pipename_child, O_WRONLY);
-                        if(out_pipe != -1){
-                            write(out_pipe, msg, sizeof(msg));
-                            close(out_pipe);
-                        } else{
-                            printf("couldn't open the pipe of the interaction device to delete it");
-                            break;
-                        }
-                        //checks
-                        char check_pipename[20];
-                        snprintf(check_pipename, sizeof(check_pipename), "/tmp/domotics_%d", hub.registry.id);
-                        int check_pipe = open(check_pipename, O_RDONLY | O_NONBLOCK);
-                        if(check_pipe != -1){
-                            fd_set read_fds;
-                            FD_ZERO(&read_fds);
-                            FD_SET(check_pipe, &read_fds);
-
-                            //max timeout
-                            struct timeval tv;
-                            tv.tv_sec = 1;
-                            tv.tv_usec = 0;
-
-                            int activity = select(check_pipe + 1, &read_fds, NULL, NULL, &tv);
-
-                            if(activity > 0){
-                                // interaction device has responded in time
-                                bytes_read = read(check_pipe, msg, sizeof(msg));
-                                if (bytes_read > 0){
-                                    close(check_pipe);
-                                    for(int i = 0; i < 20; i++){
-                                        if(hub.registry.child_id[i] == atoi(child_id)){
-                                            hub.registry.child_id[i] = -1;
-                                            hub.registry.child_switches[i] = -1;
-                                            hub.registry.child_num--;
-                                            break;
-                                        }
-                                    }
-                                }
-                                printf("interaction device deleted successfully");  
+                        
+                        int target_pipe = open(pipename_child, O_WRONLY);
+                        //if we can't open the target pipe it means the process has crashed
+                        if(target_pipe != -1){
+                            write(target_pipe, msg, sizeof(msg));
+                            close(target_pipe);
+                            
+                            char response[MSG_SIZE];
+                            int result = wait_for_device_response(hub.registry.id, response, sizeof(response));
+                            if (result == SUCCESS) {
+                                printf("interaction device deleted successfully\n");
+                            } else if (result == TIME_OUT){
+                                printf("couldn't delete child device (timeout)\n");
                                 break;
-                            } else if (activity == 0){
-                                close(check_pipe);
-                                printf("couldn't delete child device, therefore not deleting control device");
-                                break;
-                            } else{
-                                close(check_pipe);
+                            } else if (result == PIPE_ERROR){
+                                printf("error in opening hub pipe, not deleting interaction device\n");
                                 break;
                             }
                         } else{
-                            printf("couldn't open the pipe of the device to check whether interaction device was deleted");
-                            break;
+                            printf("couldn't open the pipe of the interaction device, the process might have crashed\n");
                         }
+                        
+                        //here only if wait_for_device response was success
+                        for(int i = 0; i < 20; i++){
+                            if(hub.registry.child_id[i] == atoi(child_id)){
+                                hub.registry.child_id[i] = -1;
+                                hub.registry.child_switches[i] = -1;
+                                hub.registry.child_num--;
+                                break;
+                            }
+                        }
+                        break;
                     case SELF_INFO_COMMAND:
                         hub_info_command(&hub, info, sizeof(info));
-                        if(strcmp(info, "") != 0 && strcmp(info, "\0") != 0){
-                            int controller_pipe = open(controller_pipename, O_WRONLY);
-                            if (controller_pipe < 0) {
-                                perror("open controller pipe");
-                                break;
-                            }
-                            if (write(controller_pipe, info, strlen(info) + 1) < 0) {
-                                perror("write controller pipe");
-                            }
-                            printf("message sent back to controller\n");
-                            close(controller_pipe);
-                        }
+                        send_info_to_controller(info);
                         break;
 
                     case CHILD_INFO_COMMAND:
                         snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%s", child_id);
                         snprintf(pipename_parent, sizeof(pipename_parent), "/tmp/domotics_%d", hub.registry.id);
-                        child_info_command(pipename_child, pipename_parent, info, sizeof(info));
+                        child_info_command(pipename_child);
                         break;
 
                     case SWITCH_COMMAND:
@@ -304,47 +260,33 @@ int createProcessHub(int num){
 void hub_info_command(hub* current_hub, char* info, size_t size){
     char registry[512];
     hub_registry_info(current_hub, registry, sizeof(registry));
-    //if the string of registry info is empty, make it contain an error message
     if(registry[0] == '\0'){
-        strcpy(registry, "error reading registry");
+        printf("error reading registry \n");
         return;
     }
-    //formats the info as "State: <state> Switch: <switches> Registry: <registry info>"
     snprintf(info, size,
-        "State: %d Switch: %d Registry: %s",
+        "State: %d, Switch: %d, %s",
         current_hub->state,
         current_hub->switches,
         registry );
-
-    //debug
-    printf("hub info are created\n");
-    }
+}
  
 void hub_registry_info(hub* current_hub, char* registry, size_t size){
     char childs[512];
     childs[0] = '\0';
     int len = 0;
 
-    //iterate over the full array so the output reflects which slots are occupied
     for (int i = 0; i < 20; i++) {
         if (i > 0) {
             len += snprintf(childs + len, sizeof(childs) - len, ",");
         }
-        if (current_hub->registry.child_id[i] != -1) {
-            len += snprintf(childs + len, sizeof(childs) - len, "%d", current_hub->registry.child_id[i]);
-        }else{
-            len += snprintf(childs + len, sizeof(childs) - len, "0");
-        }
+        len += snprintf(childs + len, sizeof(childs) - len, "%d", current_hub->registry.child_id[i]);
     }
 
-    
-    //formats the info as "id=<id parent_id=<parent_id> child_num=<child_num> children=[<string of childs>]"
     snprintf(registry, size,
-        "id=%d parent_id=%d child_num=%d children=[%s]",
+        "Id: %d, Parent id: %d Number of child devices: %d, Children=[%s]",
         current_hub->registry.id,
         current_hub->registry.parent_id,
         current_hub->registry.child_num,
         childs);
-    //debug
-    printf("registry info are created\n");
 }
