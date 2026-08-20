@@ -88,6 +88,28 @@ int createProcessFridge(int num){
                             fridge.registry.time = 0;
                         }
                         break;
+
+                    case SET_COMMAND:
+                        memcpy(buf_copy, buf, MSG_SIZE);
+                        strtok(buf_copy, " ");
+                        char* attribute = strtok(NULL, " ");
+                        char* value = strtok(NULL, " ");
+                        if(strcmp(attribute, "delay") == 0){
+                            fridge.registry.delay = (time_t) atoi(value);
+                        } else if(strcmp(attribute, "fill") == 0){
+                            int int_value = atoi(value);
+                            if(int_value <= 100){
+                                fridge.registry.perc = int_value;
+                            } else {
+                                printf("invalid value given, it has to be less than 100 \n");
+                            }
+                            
+                        } else if(strcmp(attribute, "thermostat") == 0){
+                            fridge.registry.thermostat = atoi(value); 
+                        } else{
+                            printf("invalid attribute \n");
+                        }
+                        break;
                     default:
                         break;
                 }

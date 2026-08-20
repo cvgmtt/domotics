@@ -68,6 +68,8 @@ int createProcessWindow(int num){
                             window.switches = 0;
                         }
                         break;
+                    case SET_COMMAND:
+                        printf("wrong device targeted, you can't set parameters of window type device \n");
                     default:
                         break;
                 }

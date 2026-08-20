@@ -22,6 +22,7 @@
 #define ALREADY_LINKED 18
 #define PIPE_ERROR 19
 #define TIME_OUT 20
+#define SET_COMMAND 21
 
 
 

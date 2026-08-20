@@ -4,8 +4,8 @@ timer createTimer(){
     timer timer;
     timer.state = 1;
     timer.switches = 1;
-    timer.registry.begin_minutes = 0;
-    timer.registry.end_minutes = 0;
+    timer.registry.begin_time = 0;
+    timer.registry.end_time = 0;
     timer.registry.parent_id = 0;
     timer.registry.child_id = -1;
     return timer;
@@ -144,14 +144,14 @@ int createProcessTimer(int num){
                         if (strcmp(pos, "on") == 0){
                             timer.switches = 1;
                             timer.state = 1;
-                            timer.registry.begin_minutes = 0;
-                            timer.registry.end_minutes = 0;
+                            timer.registry.begin_time = 0;
+                            timer.registry.end_time = 0;
                             printf("switched Timer %s\n", pos);
                         } else if (strcmp(pos, "off") == 0){
                             timer.switches = 0;
                             timer.state = 0;
-                            timer.registry.end_minutes = timer.registry.end_minutes;
-                            timer.registry.begin_minutes = 0;
+                            timer.registry.end_time = timer.registry.end_time;
+                            timer.registry.begin_time = 0;
 
                             printf("switched Timer%s\n", pos);
                         }
@@ -192,6 +192,25 @@ int createProcessTimer(int num){
                             printf("timer's state is inconsistent");
                         }
                         break;
+
+                    case SET_COMMAND:
+                        memcpy(buf_copy, buf, MSG_SIZE);
+                        strtok(buf_copy, " ");
+                        char* attribute = strtok(NULL, " ");
+                        char* value1 = strtok(NULL, " ");
+                        char* value2 = strtok(NULL, " ");
+                        if(strcmp(attribute, "timer") == 0){
+                            if(atoi(value1) < atoi(value2)){
+                                timer.registry.begin_time =  atoi(value1);
+                                timer.registry.end_time = atoi(value2);
+                            } else{
+                                printf("invalid begin and end time given \n");
+                            }
+                            
+                        } else{
+                            printf("invalid attribute \n");
+                        }
+                        break;
                     default:
                         break;
                 }
@@ -221,9 +240,11 @@ void timer_info_command(timer* current_timer, char* info, size_t size){
 //gets the info of the registry of the timer and returns it as a string
 void timer_registry_info(timer* current_timer,  char* info, size_t size){
     snprintf(info, size,
-        "Id=%d, Parent id: %d, Child id: %d",
+        "Id=%d, Parent id: %d, Child id: %d, begin_time: %d, end_time: %d",
         current_timer->registry.id,
         current_timer->registry.parent_id,
-        current_timer->registry.child_id
+        current_timer->registry.child_id,
+        current_timer->registry.begin_time,
+        current_timer->registry.end_time
     );
 }

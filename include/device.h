@@ -15,6 +15,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <time.h>
+#include <ctype.h>
 #define MSG_SIZE 200
 
 int checkSuccess(int fd[], pid_t pid);
