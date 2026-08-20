@@ -28,6 +28,7 @@ int createProcessTimer(int num){
         int pipe = setup_device(timer.registry.id, "Timer", fd);
         if (pipe < 0) exit(FAILURE);
         char buf[MSG_SIZE];
+        char msg[MSG_SIZE];
         int command;
         char id[10];
         char pos[10];
@@ -64,6 +65,12 @@ int createProcessTimer(int num){
 
                     case CHANGE_CHILD_COMMAND:
                         timer.registry.child_id = atoi(child_id);
+                        if(timer.switches == 0){
+                            snprintf(msg, sizeof(msg), "switch off");
+                        } else{
+                            snprintf(msg, sizeof(msg), "switch on");
+                        }
+                        send_ipc_message(child_id, msg);
                         break;
 
                     case SELF_INFO_COMMAND:

@@ -36,6 +36,7 @@ int createProcessHub(int num){
             exit(FAILURE);
         }
         char buf[MSG_SIZE];
+        char msg[MSG_SIZE];
         int command;
         char id[10];
         char pos[10];
@@ -85,7 +86,15 @@ int createProcessHub(int num){
                                 hub.registry.child_num++;
                                 break;
                             }
+                            
                         }
+                        //switch the state of the interaction device to on or off based off of the hub switch
+                        if(hub.switches == 0){
+                            snprintf(msg, sizeof(msg), "switch off");
+                        } else{
+                            snprintf(msg, sizeof(msg), "switch on");
+                        }
+                        send_ipc_message(child_id, msg);
                         break;
                     //this command send a self delete message to all interaction device linnked to the hub and then deletes the hub itself
                     case SELF_DEL_COMMAND:
@@ -95,7 +104,6 @@ int createProcessHub(int num){
                                 
                                 char pipename_child[32];
                                 snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%d", target_child);
-                                char msg[MSG_SIZE];
                                 memset(msg, 0, sizeof(msg));
                                 snprintf(msg, sizeof(msg), "self_delete %d", target_child);
                                 
@@ -224,9 +232,6 @@ int createProcessHub(int num){
                         }
                         break;
                     case SWITCH_CHILD_COMMAND:
-                        //debug
-                        printf("command switch_child reached in hub\n");
-                        
                         char message[50];
                         snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%s", id );
                         int child_pipe = open(pipename_child, O_WRONLY | O_NONBLOCK);
