@@ -233,7 +233,7 @@ int createProcessHub(int num){
                         if (child_pipe >= 0){
                             snprintf(message, sizeof(message), "switch %s", pos);
                             if (write(child_pipe, message, strlen(message) + 1) < 0) {
-                                perror("write child pipe");
+                                perror("write child pipe\n");
                             }
                             close(child_pipe);
                         }
@@ -244,9 +244,11 @@ int createProcessHub(int num){
                     case STATE_CHANGE:
                         int child_state = atoi(pos);
                         if(child_state != hub.state){
-                            printf("hub's state is inconsistent");
+                            printf("hub's state is inconsistent \n");
                         }
                         break;
+                    case SET_COMMAND:
+                        printf("wrong device targeted, you can't set parameters of hub type device \n");
                     default:
                         break;
                 }

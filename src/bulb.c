@@ -65,8 +65,12 @@ int createProcessBulb(int num){
                         }else if (strcmp(pos, "off") == 0){
                             bulb.switches = 0;
                             bulb.state = 0;
+                        } else{
+                            printf("wrong input, requires either on or off.\n");
                         }
                         break;
+                    case SET_COMMAND:
+                        printf("wrong device targeted, you can't set parameters of bulb type device \n");
                     default:
                         break;                    
                 }

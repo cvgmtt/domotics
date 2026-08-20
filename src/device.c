@@ -264,6 +264,8 @@ int getCommand(char* buf, char* id, char* pos, char* child_id){
             }
             strcpy(pos, pos_temp);
             return STATE_CHANGE;
+        } else if (strcmp(token, "set") == 0) {
+            return SET_COMMAND;
         } else {
             return INVALID_COMMAND;
         }
