@@ -228,9 +228,7 @@ int main(){
                         get_info(id1, info);
                         if(info[0] == '\0'){
                             printf("could not get info of the device\n");
-                        } else{
-                            printf("Info of device with id %s:\n %s\n", id1, info);
-                        }
+                        } 
                     } else{
                         printf("wrong input. info requires <id>\n");
                     }
@@ -349,27 +347,66 @@ void list(char* list_info){
     FILE *fp = fopen(".registry.txt", "r");
     if (fp != NULL) {
         char row[200];
-        char info[MSG_SIZE];
-        memset(info, 0, sizeof(info));
-        printf("retriving devices information, this may take a while depending on the number of devices.. \n");
+        char dummy_info[MSG_SIZE]; 
+        
+        printf("retrieving devices information...\n");
+        printf("Enter the desired command: ");
+        fflush(stdout);
         while (fgets(row, sizeof(row), fp) != NULL) {
             char row_copy[200];
             strcpy(row_copy, row);
-            count++;
-            
             char* current_id = strtok(row_copy, ", ");
             if (current_id != NULL) {
-                sprintf(list_info + strlen(list_info), "Device ID: %s\n", current_id);
-                get_info(current_id, info);
-                strcat(list_info, info);
-                strcat(list_info, "\n\n");
-                memset(info, 0, sizeof(info));
+                count++;
+                get_info(current_id, dummy_info); 
             }
         }
+        fclose(fp);
+
         if(count == 0){
             strcat(list_info, "no devices active at the moment, add one using the add command \n");
+            return;
         }
-        fclose(fp);
+
+        int controller_pipe = open("/tmp/domotics_0", O_RDONLY | O_NONBLOCK);
+        if (controller_pipe < 0) {
+            perror("error in opening controller pipe for list\n");
+            return;
+        }
+
+        int received = 0;
+        fd_set read_fds;
+        struct timeval tv;
+
+        while (received < count) {
+            FD_ZERO(&read_fds);
+            FD_SET(controller_pipe, &read_fds);
+            
+            tv.tv_sec = 2; 
+            tv.tv_usec = 0;
+            
+            int activity = select(controller_pipe + 1, &read_fds, NULL, NULL, &tv);
+            
+            if (activity > 0 && FD_ISSET(controller_pipe, &read_fds)) {
+                char response[MSG_SIZE];
+                memset(response, 0, sizeof(response));
+                
+                if (read(controller_pipe, response, sizeof(response)) > 0) {
+                    if (strncmp(response, "del ", 4) == 0) {
+                        char* id_to_del = response + 4;
+                        delete_device_from_registry(id_to_del);
+                    } else {
+                        strcat(list_info, response);
+                        strcat(list_info, "\n\n");
+                        received++;
+                    }
+                }
+            } else {
+                strcat(list_info, "some devices did not respond in time.\n\n");
+                break;
+            }
+        }
+        close(controller_pipe);
     } else {
         perror("error in opening registry file\n");
     }
@@ -534,6 +571,8 @@ int check_parents(char* parent_to_change, char* child_id, char* parent_id){
 
 //function to get the infos of a device given its id
 //if it doesn't exist or is an interaction device without a parent returns NULL
+//function to get the infos of a device given its id
+//if it doesn't exist or is an interaction device without a parent returns NULL
 void get_info(char* id, char* info) {
     char row[200];
     get_device_row(id, row);
@@ -546,9 +585,6 @@ void get_info(char* id, char* info) {
         strtok(NULL, ", "); // pid
         char* type = strtok(NULL, ", "); // type
         
-        char controller_pipename[32];
-        snprintf(controller_pipename, sizeof(controller_pipename), "/tmp/domotics_0");
-
         if (strcmp(type, "Hub") == 0 || strcmp(type, "Timer") == 0){
             if(send_ipc_message(id, "self_info") == FAILURE){
                 perror("error writing to self pipe\n");
@@ -571,21 +607,7 @@ void get_info(char* id, char* info) {
             } 
         }
 
-        char response[MSG_SIZE];
-        memset(response, 0, sizeof(response)); 
-        int controller_pipe = open(controller_pipename, O_RDONLY);
-        if (controller_pipe < 0) {
-            perror("error opening controller pipe\n");
-            return;
-        }
-        ssize_t bytes_read = read(controller_pipe, response, sizeof(response));
-        if (bytes_read > 0) {
-            strcpy(info, response);
-        } else {
-            strcpy(info, "\0");
-            printf("No response received from device\n");
-        }
-        close(controller_pipe); 
+        strcpy(info, "request sent");
         return; 
     } else {
         strcpy(info, "\0");
