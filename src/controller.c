@@ -248,9 +248,7 @@ int main(){
 
 void switch_device(char* id, char* label, char* pos){
     //get the row of the device
-    char pipename[30];
     char row[200];
-    char message[50];
     get_device_row(id, row);
     //check for valid row
     if(strcmp(row, "\0") == 0){
@@ -298,12 +296,13 @@ void switch_device(char* id, char* label, char* pos){
 
         //if the command is "close off" or "open on" send pos on, otherwise send pos off
         char command[100];
+        char actual_pos[10];
         snprintf(command, sizeof(command), "%s %s", label, pos);
         
         if(strcmp(command, "close off") == 0 || strcmp(command, "open on") == 0 ){
-            strcpy(pos, "on");
+            strcpy(actual_pos, "on");
         } else{
-            strcpy(pos, "off");
+            strcpy(actual_pos, "off");
         }
         
         //debug
@@ -312,10 +311,10 @@ void switch_device(char* id, char* label, char* pos){
         //check if parent exists or not, if it does send the command to the parent which then forwards to the child 
         if(strcmp(parent_id, "0") == 0){
             //send message to fridge device itself
-            send_switch_message(id, pos);
+            send_switch_message(id, actual_pos);
         }else if(parent_id != NULL){
             //send message to parent of fridge device
-            send_switch_message(parent_id, pos);
+            send_switch_message(parent_id, actual_pos);
         }else{
             printf("couldn't perform action for id %s, parent not specified\n", id);
             return;
@@ -325,7 +324,10 @@ void switch_device(char* id, char* label, char* pos){
         }
 };
 
+//sends the switch command to the device specified by id and to the position specified by pos.
 void send_switch_message(char* id, char* pos){
+    char pipename[30];
+    char message[50];
     snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", id);
     int device_pipe = open(pipename, O_WRONLY | O_NONBLOCK);
     if(device_pipe >= 0){
@@ -341,6 +343,7 @@ void send_switch_message(char* id, char* pos){
     }
 }
 
+//lists all info of the devices in the registry.
 void list(char* list_info){
     int count = 0;
     FILE *fp = fopen(".registry.txt", "r");
