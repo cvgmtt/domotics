@@ -272,19 +272,7 @@ void switch_device(char* id, char* label, char* pos){
         //check if is control device or a bulb
         if(strcmp(type, "Timer") == 0 || strcmp(type, "Hub") == 0){
             //send the switch command to the control device directly
-            snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", id);
-            int device_pipe = open(pipename, O_WRONLY | O_NONBLOCK);
-            if(device_pipe >= 0){
-                snprintf(message, sizeof(message), "switch %s", pos);
-                write(device_pipe, message, strlen(message) + 1);
-                close(device_pipe);
-
-                //debug
-                printf("sent message to control device\n");
-
-            } else{
-                printf("couldn't open the pipe of the device to switch it 1\n");
-            }
+            send_switch_message(id, pos);
         } else if(strcmp(type, "Bulb") == 0){
             //send the switch command to the father of the device
 
@@ -292,151 +280,66 @@ void switch_device(char* id, char* label, char* pos){
             printf("value of parent: %s\n", parent_id);
 
             if(strcmp(parent_id, "0") == 0){
-                //send message to bulb device itself
-                snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", id);
-                int device_pipe = open(pipename, O_WRONLY | O_NONBLOCK);
-                if(device_pipe >= 0){
-                    snprintf(message, sizeof(message), "switch %s", pos);
-                    write(device_pipe, message, strlen(message) + 1);
-                    close(device_pipe);
-
-                    //debug
-                    printf("no parent: sent message to bulb device\n");
-
-                } else{
-                    printf("couldn't open the pipe of the device to switch it 3\n");
-                }
-            } else if(parent_id != NULL){
-                //send message to parent of bulb
-                snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", parent_id);
-                int device_pipe = open(pipename, O_WRONLY | O_NONBLOCK);
-                if(device_pipe >= 0){
-                    snprintf(message, sizeof(message), "switch_child %s %s", id, pos);
-                    write(device_pipe, message, strlen(message) + 1);
-                    close(device_pipe);
-                    //debug
-                    printf("sent message to parent of bulb\n");
-                } else{
-                    printf("couldn't open the pipe of the device to switch it 2\n");
-                }
+                //send message to fridge device itself
+                send_switch_message(id, pos);
+            }else if(parent_id != NULL){
+                //send message to parent of bulb device
+                send_switch_message(parent_id, pos);
             } else{
-                printf("couldn't find parent for Bulb id %s\n", id);
+                printf("couldn't perform action for id %s, parent not specified\n", id);
                 return;
             }
         }else{
-            printf("inconsistent label and type of device, cannot perfrom action\n");
+            printf("inconsistent label and type of device, cannot perform action\n");
+            return;
         }
-    }else if ((strcmp(label, "open") == 0 || strcmp(label, "close") == 0) && strcmp(type, "Fridge") == 0){
-        //switch of a fridge device
+    }else if ((strcmp(label, "open") == 0 || strcmp(label, "close") == 0) && (strcmp(type, "Fridge") == 0 || strcmp(type, "Window") == 0)){
+        //switch of a fridge or window device
 
         //if the command is "close off" or "open on" send pos on, otherwise send pos off
         char command[100];
         snprintf(command, sizeof(command), "%s %s", label, pos);
         
-        //debgug
-        printf("command: %s \n", command);
-        
-        if(strcmp(command, "close off") == 0 || strcmp(command, "open on") == 0){
+        if(strcmp(command, "close off") == 0 || strcmp(command, "open on") == 0 ){
             strcpy(pos, "on");
         } else{
             strcpy(pos, "off");
         }
-
+        
         //debug
         printf("value of parent: %s\n", parent_id);
 
         //check if parent exists or not, if it does send the command to the parent which then forwards to the child 
         if(strcmp(parent_id, "0") == 0){
             //send message to fridge device itself
-            snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", id);
-            int device_pipe = open(pipename, O_WRONLY | O_NONBLOCK);
-            if(device_pipe >= 0){
-                snprintf(message, sizeof(message), "switch %s", pos);
-                write(device_pipe, message, strlen(message) + 1);
-                close(device_pipe);
-
-                //debug
-                printf("no parent: sent message to fridge device\n");
-
-            } else{
-                printf("couldn't open the pipe of the device to switch it 3\n");
-            }
+            send_switch_message(id, pos);
         }else if(parent_id != NULL){
             //send message to parent of fridge device
-            snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", parent_id);
-            int device_pipe = open(pipename, O_WRONLY | O_NONBLOCK);
-            if(device_pipe >= 0){
-                snprintf(message, sizeof(message), "switch_child %s %s", id, pos);
-                write(device_pipe, message, strlen(message) + 1);
-                close(device_pipe);
-
-                //debug
-                printf("parent exists:sent message to parent of fridge\n");
-
-            } else{
-                printf("couldn't open the pipe of the device to switch it 4\n");
-            }
+            send_switch_message(parent_id, pos);
         }else{
-            printf("couldn't find parent for Fridge id %s\n", id);
+            printf("couldn't perform action for id %s, parent not specified\n", id);
             return;
         }
-        
-    }else if ((strcmp(label, "open") == 0 || strcmp(label, "close") == 0) && strcmp(type, "Window") == 0){
-        //switch of a window device
-
-        //if the command is "close off" or "open on" send pos on, otherwise send pos off
-        char command[100];
-        snprintf(command, sizeof(command), "%s %s", label, pos);
-        
-        //debgug
-        printf("command: %s \n", command);
-        
-        if(strcmp(command, "close off") == 0 || strcmp(command, "open on") == 0){
-            strcpy(pos, "on");
         } else{
-            strcpy(pos, "off");
+            printf("inconsistent label and type of device, cannot perfrom action\n");
         }
-
-        //check if parent exists or not, if it does send the command to the parent which then forwards to the child 
-        if(strcmp(parent_id, "0") == 0){
-            //send message to window device itself
-            snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", id);
-            int device_pipe = open(pipename, O_WRONLY | O_NONBLOCK);
-            if(device_pipe >= 0){
-                snprintf(message, sizeof(message), "switch %s", pos);
-                write(device_pipe, message, strlen(message) + 1);
-                close(device_pipe);
-
-                //debug
-                printf("no parent: sent message to window device\n");
-
-            } else{
-                printf("couldn't open the pipe of the device to switch it \n");
-            }
-        }else if(parent_id != NULL){
-            //send message to parent of window device
-            snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", parent_id);
-            int device_pipe = open(pipename, O_WRONLY | O_NONBLOCK);
-            if(device_pipe >= 0){
-                snprintf(message, sizeof(message), "switch_child %s %s", id, pos);
-                write(device_pipe, message, strlen(message) + 1);
-                close(device_pipe);
-
-                //debug
-                printf("parent exists: sent message to parent of window device\n");
-
-            } else{
-                printf("couldn't open the pipe of the device to switch it 6\n");
-            }
-        }else{
-            printf("couldn't find parent for Window id %s\n", id);
-            return;
-        }       
-    }else{
-        printf("inconsistent label and type of device, cannot perfrom action\n");
-    }
-    return;
 };
+
+void send_switch_message(char* id, char* pos){
+    snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", id);
+    int device_pipe = open(pipename, O_WRONLY | O_NONBLOCK);
+    if(device_pipe >= 0){
+        snprintf(message, sizeof(message), "switch %s", pos);
+        write(device_pipe, message, strlen(message) + 1);
+        close(device_pipe);
+
+        //debug
+        printf("no parent: sent message to interaction device\n");
+
+    } else{
+        printf("couldn't open the pipe of the device to switch it \n");
+    }
+}
 
 void list(char* list_info){
     int count = 0;
