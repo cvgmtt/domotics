@@ -25,7 +25,7 @@ int setup_device(int id, const char* type_name, int control_pipe[]) {
 
     msg = SUCCESS;
     write(control_pipe[1], &msg, sizeof(msg));
-    close(control_pipe); 
+    close(control_pipe[1]); 
     //write new row in registry
     fprintf(fp, "%d, %d, %s, 0, \n", id, getpid(), type_name);
     fclose(fp);
@@ -173,6 +173,23 @@ int wait_for_device_response(int my_id, char* response_buf, size_t buf_size) {
 void wait_function(){
     int wait_time = 1.00 + rand() % 3;
     sleep(wait_time);
+}
+
+int send_ipc_message(const char* id, const char* message) {
+    char pipename[32];
+    snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", id);
+    
+    int fd = open(pipename, O_WRONLY | O_NONBLOCK);
+    if (fd >= 0) {
+        char buffer[MSG_SIZE];
+        memset(buffer, 0, MSG_SIZE);
+        strncpy(buffer, message, MSG_SIZE - 1);
+        
+        write(fd, buffer, MSG_SIZE);
+        close(fd);
+        return SUCCESS;
+    }
+    return FAILURE;
 }
 
 int getCommand(char* buf, char* id, char* pos, char* child_id){

@@ -1,15 +1,8 @@
 CC := gcc
 CFLAGS := -std=c11 -Wall -Wextra -Iinclude -g
-SRCDIR := src
-INCDIR := include
-OBJDIR := build
-BINDIR := bin
-
-SOURCES := $(wildcard $(SRCDIR)/*.c)
-OBJECTS := $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SOURCES))
-TARGET := $(BINDIR)/controller
-
-FIFOS := $(wildcard *.fifo)
+SOURCES := $(wildcard src/*.c)
+OBJECTS := $(patsubst src/%.c, build/%.o, $(SOURCES))
+TARGET := bin/controller
 
 .PHONY: all build clean run
 
@@ -17,20 +10,18 @@ all: build
 
 build: $(TARGET)
 
-$(OBJDIR)/%.o: $(SRCDIR)/%.c
-	mkdir -p $(OBJDIR)
+build/%.o: src/%.c
+	mkdir -p build
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(TARGET): $(OBJECTS)
-	mkdir -p $(BINDIR)
+	mkdir -p bin
 	$(CC) $(CFLAGS) $^ -o $@
 
 run: build
 	./$(TARGET)
 
 clean:
-	rm -rf $(OBJDIR) $(BINDIR)
-	@if [ -n "$(FIFOS)" ]; then rm -f $(FIFOS); fi
-	-find . -maxdepth 1 -type p -name '*.fifo' -exec rm -f {} + || true
+	rm -rf build bin
 	rm -f /tmp/domotics_*
-	@echo "Cleaned build artifacts, local .fifo files, and /tmp/domotics_* named pipes"
+	@echo "Cleaned build artifacts and named pipes"

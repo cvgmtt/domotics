@@ -39,4 +39,6 @@ int wait_for_device_response(int my_id, char* response_buf, size_t buf_size);
 int setup_device(int id, const char* type_name, int control_pipe[]);
 
 void wait_function();
+
+int send_ipc_message(const char* target_id, const char* message); 
 #endif

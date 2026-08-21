@@ -37,5 +37,5 @@ void get_info(char* id, char* info);
 void get_device_row(char* id, char* row_copy);
 void sigchld_handler(int sig);
 void handle_crashed_devices();
-int send_ipc_message(const char* target_id, const char* message); 
+
 #endif

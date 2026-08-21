@@ -16,22 +16,7 @@ void sigchld_handler(int sig){
     } 
 }
 
-int send_ipc_message(const char* id, const char* message) {
-    char pipename[32];
-    snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", id);
-    
-    int fd = open(pipename, O_WRONLY | O_NONBLOCK);
-    if (fd >= 0) {
-        char buffer[MSG_SIZE];
-        memset(buffer, 0, MSG_SIZE);
-        strncpy(buffer, message, MSG_SIZE - 1);
-        
-        write(fd, buffer, MSG_SIZE);
-        close(fd);
-        return SUCCESS;
-    }
-    return FAILURE;
-}
+
 
 int main(){
     //initialization of controller
