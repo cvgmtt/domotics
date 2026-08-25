@@ -192,6 +192,13 @@ int send_ipc_message(const char* id, const char* message) {
     return FAILURE;
 }
 
+int check_inconsistency(int child_state, int parent_state) {
+    if (child_state != parent_state) {
+        return 1;
+    }
+    return 0;
+}
+
 int getCommand(char* buf, char* id, char* pos, char* child_id){
     char* token = strtok(buf, " ");
     if(token != NULL){
@@ -272,15 +279,6 @@ int getCommand(char* buf, char* id, char* pos, char* child_id){
                 return INVALID_COMMAND;
             }
             return CHILD_INFO_COMMAND;
-        }else if(strcmp(token, "state") == 0){
-            char* pos_temp = strtok(NULL, " ");
-            char* extra = strtok(NULL, " ");
-            if(extra != NULL){
-                printf("invalid command");
-                return INVALID_COMMAND;
-            }
-            strcpy(pos, pos_temp);
-            return STATE_CHANGE;
         } else if (strcmp(token, "set") == 0) {
             return SET_COMMAND;
         } else {

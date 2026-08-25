@@ -151,15 +151,13 @@ int createProcessTimer(int num){
                         if (strcmp(pos, "on") == 0){
                             timer.switches = 1;
                             timer.state = 1;
-                            timer.registry.begin_time = 0;
+                            timer.registry.begin_time = time(NULL);
                             timer.registry.end_time = 0;
                             printf("switched Timer %s\n", pos);
                         } else if (strcmp(pos, "off") == 0){
                             timer.switches = 0;
                             timer.state = 0;
-                            timer.registry.end_time = timer.registry.end_time;
-                            timer.registry.begin_time = 0;
-
+                            timer.registry.end_time = time(NULL);
                             printf("switched Timer%s\n", pos);
                         }
 
@@ -190,16 +188,7 @@ int createProcessTimer(int num){
                             close(child_pipe);
                         }
                         
-                        //manca l'updating dell'array child_switches
-                        //lo implemento dopo quando ho un sistema di notifica da parte del figlio che funziona
                         break;
-                    case STATE_CHANGE:
-                        int child_state = atoi(pos);
-                        if(child_state != timer.state){
-                            printf("timer's state is inconsistent");
-                        }
-                        break;
-
                     case SET_COMMAND:
                         memcpy(buf_copy, buf, MSG_SIZE);
                         strtok(buf_copy, " ");
@@ -230,18 +219,22 @@ int createProcessTimer(int num){
 
 //gets the info of the timer and returns it as a string
 void timer_info_command(timer* current_timer, char* info, size_t size){
-    char registry[100];
-    timer_registry_info(current_timer, registry, sizeof(registry));
-    if(registry == NULL){
-        printf("error reading registry \n");
-        return;
+    if(check_inconsistency(current_timer->state, current_timer->switches)){
+        printf("state inconsistency detected, manual interaction needed \n");
+    }else{
+        char registry[100];
+        timer_registry_info(current_timer, registry, sizeof(registry));
+        if(registry == NULL){
+            printf("error reading registry \n");
+            return;
+        }
+        //formats the info as "State: <state> Switch: <switches> Registry: <registry info>"
+        snprintf(info, size,
+            "State: %d Switch: %d, %s",
+            current_timer->state,
+            current_timer->switches,
+            registry );
     }
-    //formats the info as "State: <state> Switch: <switches> Registry: <registry info>"
-    snprintf(info, size,
-        "State: %d Switch: %d, %s",
-        current_timer->state,
-        current_timer->switches,
-        registry );
 }
 
 //gets the info of the registry of the timer and returns it as a string

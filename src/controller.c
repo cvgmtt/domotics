@@ -261,6 +261,7 @@ void switch_device(char* id, char* label, char* pos){
     strtok(NULL, ", "); // pid
     char* type = strtok(NULL, ", ");//type
     char* parent_id = strtok(NULL, ", "); //parent_id
+    char message[50];
 
 
     //check if label is consisent with type of device
@@ -268,7 +269,9 @@ void switch_device(char* id, char* label, char* pos){
         //check if is control device or a bulb
         if(strcmp(type, "Timer") == 0 || strcmp(type, "Hub") == 0){
             //send the switch command to the control device directly
-            send_switch_message(id, pos);
+            //send message to device itself
+            snprintf(message, sizeof(message), "switch %s", pos);
+            send_ipc_message(id, message);
         } else if(strcmp(type, "Bulb") == 0){
             //send the switch command to the father of the device
 
@@ -276,11 +279,13 @@ void switch_device(char* id, char* label, char* pos){
             printf("value of parent: %s\n", parent_id);
 
             if(strcmp(parent_id, "0") == 0){
-                //send message to fridge device itself
-                send_switch_message(id, pos);
+                //send message to bulb device itself
+                snprintf(message, sizeof(message), "switch %s", pos);
+                send_ipc_message(id, message);
             }else if(parent_id != NULL){
                 //send message to parent of bulb device
-                send_switch_message(parent_id, pos);
+                snprintf(message, sizeof(message), "switch_child %s %s", id, pos);
+                send_ipc_message(parent_id, message);
             } else{
                 printf("couldn't perform action for id %s, parent not specified\n", id);
                 return;
@@ -295,6 +300,7 @@ void switch_device(char* id, char* label, char* pos){
         //if the command is "close off" or "open on" send pos on, otherwise send pos off
         char command[100];
         char actual_pos[10];
+        
         snprintf(command, sizeof(command), "%s %s", label, pos);
         
         if(strcmp(command, "close off") == 0 || strcmp(command, "open on") == 0 ){
@@ -303,16 +309,19 @@ void switch_device(char* id, char* label, char* pos){
             strcpy(actual_pos, "off");
         }
         
+        
         //debug
         printf("value of parent: %s\n", parent_id);
 
         //check if parent exists or not, if it does send the command to the parent which then forwards to the child 
         if(strcmp(parent_id, "0") == 0){
-            //send message to fridge device itself
-            send_switch_message(id, actual_pos);
+            //send message to device itself
+            snprintf(message, sizeof(message), "switch %s %s", id, actual_pos);
+            send_ipc_message(id, message);
         }else if(parent_id != NULL){
-            //send message to parent of fridge device
-            send_switch_message(parent_id, actual_pos);
+            //send message to parent of device
+            snprintf(message, sizeof(message), "switch_child %s %s", id, actual_pos);
+            send_ipc_message(parent_id, message);
         }else{
             printf("couldn't perform action for id %s, parent not specified\n", id);
             return;
@@ -321,25 +330,6 @@ void switch_device(char* id, char* label, char* pos){
             printf("inconsistent label and type of device, cannot perfrom action\n");
         }
 };
-
-//sends the switch command to the device specified by id and to the position specified by pos.
-void send_switch_message(char* id, char* pos){
-    char pipename[30];
-    char message[50];
-    snprintf(pipename, sizeof(pipename), "/tmp/domotics_%s", id);
-    int device_pipe = open(pipename, O_WRONLY | O_NONBLOCK);
-    if(device_pipe >= 0){
-        snprintf(message, sizeof(message), "switch %s", pos);
-        write(device_pipe, message, strlen(message) + 1);
-        close(device_pipe);
-
-        //debug
-        printf("no parent: sent message to interaction device\n");
-
-    } else{
-        printf("couldn't open the pipe of the device to switch it \n");
-    }
-}
 
 //lists all info of the devices in the registry.
 void list(char* list_info){

@@ -246,14 +246,9 @@ int createProcessHub(int num){
                         int value = (strcmp(pos, "on") == 0) ? 1 : 0;
                         hub.registry.child_switches[atoi(id)-1] = value;
                         break;
-                    case STATE_CHANGE:
-                        int child_state = atoi(pos);
-                        if(child_state != hub.state){
-                            printf("hub's state is inconsistent \n");
-                        }
-                        break;
                     case SET_COMMAND:
                         printf("wrong device targeted, you can't set parameters of hub type device \n");
+                        break;
                     default:
                         break;
                 }
@@ -265,6 +260,15 @@ int createProcessHub(int num){
 }
 
 void hub_info_command(hub* current_hub, char* info, size_t size){
+    //check if the state is inconsistent, if it is print warning and return
+    for(int i = 0; i <20; i++){
+        if(check_inconsistency(current_hub->registry.child_switches[i], current_hub->switches) && current_hub->registry.child_switches[i] != -1){
+            printf("state inconsistency detected, manual interaction needed \n");
+            return;
+        }
+    }
+
+
     char registry[512];
     hub_registry_info(current_hub, registry, sizeof(registry));
     if(registry[0] == '\0'){
