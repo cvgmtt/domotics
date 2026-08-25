@@ -2,8 +2,8 @@
 
 timer createTimer(){
     timer timer;
-    timer.state = 1;
-    timer.switches = 1;
+    timer.state = 0;
+    timer.switches = 0;
     timer.registry.begin_time = 0;
     timer.registry.end_time = 0;
     timer.registry.parent_id = 0;
@@ -36,6 +36,7 @@ int createProcessTimer(int num){
         char pipename_child[30];
         char pipename_parent[20];
         int child_pipe;
+        char message[50];
 
         while(1){
             memset(buf, 0, sizeof(buf));
@@ -163,16 +164,8 @@ int createProcessTimer(int num){
 
                         //updating child
                         if(timer.registry.child_id > 0){
-                            snprintf(pipename_child, sizeof(pipename_child), "/t,mp/domotics_%d", timer.registry.child_id );
-                            child_pipe = open(pipename_child, O_WRONLY | O_NONBLOCK);
-                            if (child_pipe >= 0){
-                                char message[30];
-                                snprintf(message, sizeof(message), "switch %s", pos);
-                                if (write(child_pipe, message, strlen(message) + 1) < 0) {
-                                    perror("write child pipe");
-                                }
-                                close(child_pipe);
-                            }
+                            snprintf(message, sizeof(message), "switch %s", pos);
+                            send_ipc_message(timer.registry.child_id, message);
                         }
                         break;
                     case SWITCH_CHILD_COMMAND:
@@ -244,7 +237,7 @@ void timer_registry_info(timer* current_timer,  char* info, size_t size){
         current_timer->registry.id,
         current_timer->registry.parent_id,
         current_timer->registry.child_id,
-        current_timer->registry.begin_time,
-        current_timer->registry.end_time
+        (int) current_timer->registry.begin_time,
+        (int) current_timer->registry.end_time
     );
 }
