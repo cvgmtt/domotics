@@ -96,39 +96,6 @@ int confirm_del(char* pipename_parent){
     return FAILURE;
 }
 
-void child_info_command(char* pipename_child) {
-    //opens the pipe of the child and send the command to get the info
-    int child_pipe = open(pipename_child, O_WRONLY); 
-    if (child_pipe != -1) {
-        char msg[MSG_SIZE];
-        memset(msg, 0, sizeof(msg));
-        strcpy(msg, "self_info");
-        write(child_pipe, msg, sizeof(msg));
-        close(child_pipe);
-    } else {
-        printf("Error: couldn't open child pipe for info request.\n");
-    }
-}
-
-void send_info_to_controller(const char* info) {
-    if (info == NULL || strlen(info) == 0) return;
-    
-    char buffer[MSG_SIZE];
-    memset(buffer, 0, MSG_SIZE);
-    
-    strncpy(buffer, info, MSG_SIZE - 1);
-    
-    int controller_pipe = open("/tmp/domotics_0", O_WRONLY);
-    if (controller_pipe >= 0) {
-        if (write(controller_pipe, buffer, MSG_SIZE) < 0) {
-            printf("write controller pipe \n");
-        }
-        close(controller_pipe);
-    } else {
-        printf("open controller pipe \n");
-    }
-}
-
 void delete_interaction_device(int id, int parent_id) {
     if (parent_id != 0) {
         char pipename_parent[32];

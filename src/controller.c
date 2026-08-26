@@ -195,15 +195,9 @@ int main(){
                     }
                 } else if(strcmp(token, "switch") == 0){
                     char* id = strtok(NULL, " ");
-
-                    //debug
-                    printf("id: %s\n", id);
-
+                    
                     if(id != NULL){
                         char* label = strtok(NULL, " ");
-
-                        //debug
-                        printf("label: %s\n", label);
 
                         char* pos = strtok(NULL, ", ");
 
@@ -248,6 +242,7 @@ void switch_device(char* id, char* label, char* pos){
     //get the row of the device
     char row[200];
     get_device_row(id, row);
+
     //check for valid row
     if(strcmp(row, "\0") == 0){
         return; //row empty id not found
@@ -261,22 +256,18 @@ void switch_device(char* id, char* label, char* pos){
     strtok(NULL, ", "); // pid
     char* type = strtok(NULL, ", ");//type
     char* parent_id = strtok(NULL, ", "); //parent_id
-    char message[50];
 
+    char message[50];
 
     //check if label is consisent with type of device
     if(strcmp(label, "power") == 0){
         //check if is control device or a bulb
         if(strcmp(type, "Timer") == 0 || strcmp(type, "Hub") == 0){
             //send the switch command to the control device directly
-            //send message to device itself
             snprintf(message, sizeof(message), "switch %s", pos);
             send_ipc_message(id, message);
         } else if(strcmp(type, "Bulb") == 0){
             //send the switch command to the father of the device
-
-            //debug
-            printf("value of parent: %s\n", parent_id);
 
             if(strcmp(parent_id, "0") == 0){
                 //send message to bulb device itself
@@ -297,7 +288,7 @@ void switch_device(char* id, char* label, char* pos){
     }else if ((strcmp(label, "open") == 0 || strcmp(label, "close") == 0) && (strcmp(type, "Fridge") == 0 || strcmp(type, "Window") == 0)){
         //switch of a fridge or window device
 
-        //if the command is "close off" or "open on" send pos on, otherwise send pos off
+        //if the command is "close off" or "open on" send pos = on, otherwise set pos = off
         char command[100];
         char actual_pos[10];
         
@@ -308,10 +299,6 @@ void switch_device(char* id, char* label, char* pos){
         } else{
             strcpy(actual_pos, "off");
         }
-        
-        
-        //debug
-        printf("value of parent: %s\n", parent_id);
 
         //check if parent exists or not, if it does send the command to the parent which then forwards to the child 
         if(strcmp(parent_id, "0") == 0){
@@ -326,9 +313,9 @@ void switch_device(char* id, char* label, char* pos){
             printf("couldn't perform action for id %s, parent not specified\n", id);
             return;
         }
-        } else{
-            printf("inconsistent label and type of device, cannot perfrom action\n");
-        }
+    } else{
+        printf("inconsistent label and type of device, cannot perfrom action\n");
+    }
 };
 
 //lists all info of the devices in the registry.

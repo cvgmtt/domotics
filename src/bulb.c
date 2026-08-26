@@ -55,8 +55,9 @@ int createProcessBulb(int num){
                         delete_interaction_device(bulb.registry.id, bulb.registry.parent_id);
                         break;
                     case SELF_INFO_COMMAND:
+                        //send info string to the controller
                         bulb_info_command(&bulb, info, sizeof(info));
-                        send_info_to_controller(info);
+                        send_ipc_message("0", info);
                         break;
                     case SWITCH_COMMAND:
                         if (strcmp(pos, "on") == 0){

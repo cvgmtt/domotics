@@ -34,7 +34,6 @@ int createProcessTimer(int num){
         char pos[10];
         char child_id[10];
         char pipename_child[30];
-        char pipename_parent[20];
         int child_pipe;
         char message[50];
 
@@ -75,14 +74,14 @@ int createProcessTimer(int num){
                         break;
 
                     case SELF_INFO_COMMAND:
+                        //send info string to the controller
                         timer_info_command(&timer, info, sizeof(info));
-                        send_info_to_controller(info);                  
+                        send_ipc_message("0", info);
                         break;
 
                     case CHILD_INFO_COMMAND:
-                        snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%s", child_id);
-                        snprintf(pipename_parent, sizeof(pipename_parent), "/tmp/domotics_%d", timer.registry.id);
-                        child_info_command(pipename_child);
+                        //send info command to child
+                        send_ipc_message(child_id, "self_info");
                         break;
                     
                     case SELF_DEL_COMMAND:
@@ -146,9 +145,7 @@ int createProcessTimer(int num){
                         }
                         break;
                     case SWITCH_COMMAND:
-                        //debug
-                        printf("command switch reached in timer\n");
-                        //changing state and switch
+                        //change state and switch
                         if (strcmp(pos, "on") == 0){
                             timer.switches = 1;
                             timer.state = 1;
@@ -162,25 +159,16 @@ int createProcessTimer(int num){
                             printf("switched Timer%s\n", pos);
                         }
 
-                        //updating child
+                        //update child
                         if(timer.registry.child_id > 0){
                             snprintf(message, sizeof(message), "switch %s", pos);
                             send_ipc_message(timer.registry.child_id, message);
                         }
                         break;
                     case SWITCH_CHILD_COMMAND:
-                        printf("command switch_child reached in timer\n");
-                        char message[50];
-                        snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%s", id );
-                        child_pipe = open(pipename_child, O_WRONLY | O_NONBLOCK);
-                        if (child_pipe >= 0){
-                            snprintf(message, sizeof(message), "switch %s", pos);
-                            if (write(child_pipe, message, strlen(message) + 1) < 0) {
-                                perror("write child pipe");
-                            }
-                            close(child_pipe);
-                        }
-                        
+                        //send the switch command to the child device
+                        snprintf(message, sizeof(message), "switch %s", pos);
+                        send_ipc_message(id, message);                    
                         break;
                     case SET_COMMAND:
                         memcpy(buf_copy, buf, MSG_SIZE);

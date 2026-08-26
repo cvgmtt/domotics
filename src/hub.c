@@ -43,6 +43,7 @@ int createProcessHub(int num){
         char child_id[10];
         char pipename_child[20];
         char pipename_parent[20];
+        char message[50];
 
         while(1){
             memset(buf, 0, sizeof(buf));
@@ -178,50 +179,31 @@ int createProcessHub(int num){
                         }
                         break;
                     case SELF_INFO_COMMAND:
+                        //send info string to the controller
                         hub_info_command(&hub, info, sizeof(info));
-                        send_info_to_controller(info);
+                        send_ipc_message("0", info);
                         break;
 
                     case CHILD_INFO_COMMAND:
-                        snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%s", child_id);
-                        snprintf(pipename_parent, sizeof(pipename_parent), "/tmp/domotics_%d", hub.registry.id);
-                        child_info_command(pipename_child);
+                        //send info command to child
+                        send_ipc_message(child_id, "self_info");
                         break;
 
                     case SWITCH_COMMAND:
-                    
-                        //debug
-                        printf("command switch reached in hub\n");
-
                         //changing state and switch
                         if (strcmp(pos, "on") == 0){
                             hub.switches = 1;
-                            hub.state = 1;
-                            
-                            //debug
-                            printf("switched Hub %s\n", pos);
-
+                            hub.state = 1;                            
                         } else if (strcmp(pos, "off") == 0){
                             hub.switches = 0;
                             hub.state = 0;
-
-                            //debug
-                            printf("switched %s\n", pos);
-
                         }
                         //updating all children
                         for(int i = 0; i<20; i++){
                             if(hub.registry.child_switches[i] != -1){
-                                snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%d", hub.registry.child_id[i] );
-                                int child_pipe = open(pipename_child, O_WRONLY | O_NONBLOCK);
-                                if (child_pipe >= 0){
-                                    char message[50];
-                                    snprintf(message, sizeof(message), "switch %s", pos);
-                                    if (write(child_pipe, message, strlen(message) + 1) < 0) {
-                                        perror("write child pipe");
-                                    }
-                                    close(child_pipe);
-                                }
+                                snprintf(message, sizeof(message), "switch %s", pos);
+                                send_ipc_message( hub.registry.child_id[i], message); 
+                                
                                 //update the switches array of the registry
                                 if(strcmp(pos, "on") == 0){
                                     hub.registry.child_switches[i] = 1;
@@ -232,16 +214,10 @@ int createProcessHub(int num){
                         }
                         break;
                     case SWITCH_CHILD_COMMAND:
-                        char message[50];
-                        snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%s", id );
-                        int child_pipe = open(pipename_child, O_WRONLY | O_NONBLOCK);
-                        if (child_pipe >= 0){
-                            snprintf(message, sizeof(message), "switch %s", pos);
-                            if (write(child_pipe, message, strlen(message) + 1) < 0) {
-                                perror("write child pipe\n");
-                            }
-                            close(child_pipe);
-                        }
+                        //send the switch command to the child
+                        snprintf(message, sizeof(message), "switch %s", pos);
+                        send_ipc_message(id, message);                    
+                                                
                         //update the switches array of the registry
                         int value = (strcmp(pos, "on") == 0) ? 1 : 0;
                         hub.registry.child_switches[atoi(id)-1] = value;
