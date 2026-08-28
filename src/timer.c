@@ -8,6 +8,7 @@ timer createTimer(){
     timer.registry.end_time = 0;
     timer.registry.parent_id = 0;
     timer.registry.child_id = -1;
+    timer.registry.child_switch = -1;
     return timer;
 }
 
@@ -49,12 +50,12 @@ int createProcessTimer(int num){
                 memset(info, 0, sizeof(info));
 
                 //check if the state is inconsistent, if it is print warning and set the command as invalid
-                for(int i = 0; i <20; i++){
-                    if(check_inconsistency(current_hub->registry.child_switches[i], current_hub->switches) && current_hub->registry.child_switches[i] != -1){
-                        command = INVALID_COMMAND;
-                        printf("state inconsistency detected, manual override needed \n");
-                    }
+                int child_state
+                if(check_inconsistency(timer->state, timer->registry.child_state) && timer->registry.child_id != -1){
+                    command = INVALID_COMMAND;
+                    printf("state inconsistency detected, manual interaction needed \n");
                 }
+                
 
                 if (command != INVALID_COMMAND) {
                     wait_function();
@@ -63,6 +64,7 @@ int createProcessTimer(int num){
                 switch (command)
                 {
                     case CHANGE_PARENT_COMMAND:
+                    //modificare usando funzione send_ipc_message
                         timer.registry.child_id = -1;            
                         snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%s", child_id);
                         child_pipe = open(pipename_child, O_WRONLY | O_NONBLOCK);
@@ -78,8 +80,10 @@ int createProcessTimer(int num){
                         timer.registry.child_id = atoi(child_id);
                         if(timer.switches == 0){
                             snprintf(msg, sizeof(msg), "switch off");
+                            timer.registry.child_switch = 0;
                         } else{
                             snprintf(msg, sizeof(msg), "switch on");
+                            timer.registry.child_switch = 1;
                         }
                         send_ipc_message(child_id, msg);
                         break;
@@ -174,6 +178,7 @@ int createProcessTimer(int num){
                         if(timer.registry.child_id > 0){
                             snprintf(message, sizeof(message), "switch %s", pos);
                             send_ipc_message(timer.registry.child_id, message);
+                            timer.registry.child_switch = (strcmp(pos, "on") == 0) ? 1 : 0;
                         }
                         break;
                     case SWITCH_CHILD_COMMAND:
@@ -211,22 +216,20 @@ int createProcessTimer(int num){
 
 //gets the info of the timer and returns it as a string
 void timer_info_command(timer* current_timer, char* info, size_t size){
-    if(check_inconsistency(current_timer->state, current_timer->switches)){
-        printf("state inconsistency detected, manual interaction needed \n");
-    }else{
-        char registry[100];
-        timer_registry_info(current_timer, registry, sizeof(registry));
-        if(registry == NULL){
-            printf("error reading registry \n");
-            return;
-        }
-        //formats the info as "State: <state> Switch: <switches> Registry: <registry info>"
-        snprintf(info, size,
-            "State: %d Switch: %d, %s",
-            current_timer->state,
-            current_timer->switches,
-            registry );
+
+    char registry[100];
+    timer_registry_info(current_timer, registry, sizeof(registry));
+    if(registry == NULL){
+        printf("error reading registry \n");
+        return;
     }
+    //formats the info as "State: <state> Switch: <switches> Registry: <registry info>"
+    snprintf(info, size,
+        "State: %d Switch: %d, %s",
+        current_timer->state,
+        current_timer->switches,
+        registry );
+    
 }
 
 //gets the info of the registry of the timer and returns it as a string
