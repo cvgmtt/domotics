@@ -42,13 +42,24 @@ int createProcessTimer(int num){
             int bytes_read = read(pipe, buf, sizeof(buf));
             char buf_copy[MSG_SIZE];
             memcpy(buf_copy, buf, MSG_SIZE);
+
             if(bytes_read > 0){
                 command = getCommand(buf_copy, id, pos, child_id);
                 char info[MSG_SIZE];
                 memset(info, 0, sizeof(info));
+
+                //check if the state is inconsistent, if it is print warning and set the command as invalid
+                for(int i = 0; i <20; i++){
+                    if(check_inconsistency(current_hub->registry.child_switches[i], current_hub->switches) && current_hub->registry.child_switches[i] != -1){
+                        command = INVALID_COMMAND;
+                        printf("state inconsistency detected, manual override needed \n");
+                    }
+                }
+
                 if (command != INVALID_COMMAND) {
                     wait_function();
                 }
+
                 switch (command)
                 {
                     case CHANGE_PARENT_COMMAND:

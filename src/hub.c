@@ -55,9 +55,18 @@ int createProcessHub(int num){
             if(bytes_read > 0){
                 command = getCommand(buf_copy, id, pos, child_id);
                 
+                //check if the state is inconsistent, if it is print warning and set the command as invalid
+                for(int i = 0; i <20; i++){
+                    if(check_inconsistency(current_hub->registry.child_switches[i], current_hub->switches) && current_hub->registry.child_switches[i] != -1){
+                        command = INVALID_COMMAND;
+                        printf("state inconsistency detected, manual override needed \n");
+                    }
+                }
+
                 if (command != INVALID_COMMAND) {
                     wait_function();
                 }
+
                 switch(command){
                     //remove from hub array the id of the interaction device and send an ipc message to it so that it unlinks from the hub
                     //this command is used when we want to link an interaction device already linked to another control device
@@ -236,15 +245,7 @@ int createProcessHub(int num){
 }
 
 void hub_info_command(hub* current_hub, char* info, size_t size){
-    //check if the state is inconsistent, if it is print warning and return
-    for(int i = 0; i <20; i++){
-        if(check_inconsistency(current_hub->registry.child_switches[i], current_hub->switches) && current_hub->registry.child_switches[i] != -1){
-            printf("state inconsistency detected, manual interaction needed \n");
-            return;
-        }
-    }
-
-
+    
     char registry[512];
     hub_registry_info(current_hub, registry, sizeof(registry));
     if(registry[0] == '\0'){

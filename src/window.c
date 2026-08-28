@@ -62,9 +62,11 @@ int createProcessWindow(int num){
                         break;
                     case SWITCH_COMMAND:
                         if (strcmp(pos, "on") == 0){
+                            window.switches = 1;
                             window.state = 1;//open 
                             window.switches = 0;
                         }else if (strcmp(pos, "off") == 0){
+                            window.switches = 1;
                             window.state = 0;//closed
                             window.switches = 0;
                         }
