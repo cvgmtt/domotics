@@ -198,15 +198,20 @@ int main(){
                     
                     if(id != NULL){
                         char* label = strtok(NULL, " ");
-
+                        int result;
                         char* pos = strtok(NULL, ", ");
 
                         if(strcmp(pos, "on") != 0 && strcmp(pos, "off") != 0){
                             printf("wrong input. switch requires a valid position such as: on, off\n");
                         }else if(strcmp(label, "power") != 0 && strcmp(label, "close")!= 0 && strcmp(label, "open") != 0){
-                            printf("wrong input. switch requires a valid label such as: power, close, open\n");
+                            printf("wrong input. switch requires a valid label such as: power, close or open\n");
                         }else if(strtok(NULL, " ") == NULL){
-                                switch_device(id, label, pos);
+                                result = switch_device(id, label, pos);
+                                if(result == FAILURE){
+                                    printf("error occurred while switching the device\n");
+                                }else{
+                                    printf("switch command sent to device %s\n", id);
+                                }
                         } else {
                             printf("wrong input. switch requires <id> <label> <pos>\n");
                         } 
@@ -238,7 +243,7 @@ int main(){
     return 0;
 } 
 
-void switch_device(char* id, char* label, char* pos){
+int switch_device(char* id, char* label, char* pos){
     //get the row of the device
     char row[200];
     get_device_row(id, row);
@@ -279,11 +284,11 @@ void switch_device(char* id, char* label, char* pos){
                 send_ipc_message(parent_id, message);
             } else{
                 printf("couldn't perform action for id %s, parent not specified\n", id);
-                return;
+                return FAILURE;
             }
         }else{
             printf("inconsistent label and type of device, cannot perform action\n");
-            return;
+            return FAILURE;
         }
     }else if ((strcmp(label, "open") == 0 || strcmp(label, "close") == 0) && (strcmp(type, "Fridge") == 0 || strcmp(type, "Window") == 0)){
         //switch of a fridge or window device
@@ -311,11 +316,13 @@ void switch_device(char* id, char* label, char* pos){
             send_ipc_message(parent_id, message);
         }else{
             printf("couldn't perform action for id %s, parent not specified\n", id);
-            return;
+            return FAILURE;
         }
     } else{
         printf("inconsistent label and type of device, cannot perfrom action\n");
+        return FAILURE;
     }
+    return SUCCESS;
 };
 
 //lists all info of the devices in the registry.
