@@ -8,7 +8,7 @@ timer createTimer(){
     timer.registry.end_time = 0;
     timer.registry.parent_id = 0;
     timer.registry.child_id = -1;
-    timer.registry.child_switch = -1;
+    timer.registry.child_state = -1;
     return timer;
 }
 
@@ -30,7 +30,7 @@ int createProcessTimer(int num){
         if (pipe < 0) exit(FAILURE);
         char buf[MSG_SIZE];
         char msg[MSG_SIZE];
-        int command;
+        int command;  
         char id[10];
         char pos[10];
         char child_id[10];
@@ -43,16 +43,18 @@ int createProcessTimer(int num){
             int bytes_read = read(pipe, buf, sizeof(buf));
             char buf_copy[MSG_SIZE];
             memcpy(buf_copy, buf, MSG_SIZE);
+            //timer.registry.child_state = ; 
 
             if(bytes_read > 0){
                 command = getCommand(buf_copy, id, pos, child_id);
                 char info[MSG_SIZE];
                 memset(info, 0, sizeof(info));
 
+                
                 //check if the state is inconsistent, if it is print warning and set the command as invalid
-                if(check_inconsistency(timer.state, timer.registry.child_switch) && timer.registry.child_id != -1){
+                if(check_inconsistency(timer.registry.child_state, timer.state) && timer.registry.child_id != -1){
                     command = INVALID_COMMAND;
-                    printf("state inconsistency detected, manual interaction needed \n");
+                    printf("state inconsistency detected in timer, manual interaction needed \n");
                 }
                 
 
@@ -64,7 +66,8 @@ int createProcessTimer(int num){
                 {
                     case CHANGE_PARENT_COMMAND:
                     //modificare usando funzione send_ipc_message
-                        timer.registry.child_id = -1;            
+                        timer.registry.child_id = -1;   
+                        timer.registry.child_state = -1;         
                         snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%s", child_id);
                         child_pipe = open(pipename_child, O_WRONLY | O_NONBLOCK);
                         if (child_pipe != -1) {
@@ -77,12 +80,12 @@ int createProcessTimer(int num){
 
                     case CHANGE_CHILD_COMMAND:
                         timer.registry.child_id = atoi(child_id);
-                        if(timer.switches == 0){
+                        timer.registry.child_state = timer.state;
+                        //switch the state of the interaction device to on or off based off of the hub switch
+                        if(timer.state == 0){
                             snprintf(msg, sizeof(msg), "switch off");
-                            timer.registry.child_switch = 0;
                         } else{
                             snprintf(msg, sizeof(msg), "switch on");
-                            timer.registry.child_switch = 1;
                         }
                         send_ipc_message(child_id, msg);
                         break;
@@ -173,17 +176,23 @@ int createProcessTimer(int num){
                             printf("switched Timer%s\n", pos);
                         }
 
-                        //update child
+                        //update child if it exists
+                        snprintf(child_id, sizeof(child_id), "%d", timer.registry.child_id);
                         if(timer.registry.child_id > 0){
                             snprintf(message, sizeof(message), "switch %s", pos);
-                            send_ipc_message((char*)timer.registry.child_id, message);
-                            timer.registry.child_switch = (strcmp(pos, "on") == 0) ? 1 : 0;
+                            send_ipc_message(child_id, message);
+                            //update the state of the child in the registry
+                            int value = (strcmp(pos, "on") == 0) ? 1 : 0;
+                            timer.registry.child_state = value;
                         }
                         break;
                     case SWITCH_CHILD_COMMAND:
                         //send the switch command to the child device
                         snprintf(message, sizeof(message), "switch %s", pos);
-                        send_ipc_message(id, message);                    
+                        send_ipc_message(id, message);
+                        //update the state of the child in the registry
+                        int value = (strcmp(pos, "on") == 0) ? 1 : 0;
+                        timer.registry.child_state = value;
                         break;
                     case SET_COMMAND:
                         memcpy(buf_copy, buf, MSG_SIZE);

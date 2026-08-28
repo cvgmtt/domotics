@@ -123,7 +123,7 @@ int main(){
                 if(strcmp(token, "list") == 0){
                     char list_info[4096] = "\0";
                     list(list_info);
-                    printf("%s", list_info);
+                    printf("\n%s", list_info);
                 } else if (strcmp(token, "add") == 0){
                     token = strtok(NULL, " ");
                     if(token != NULL){
@@ -250,7 +250,7 @@ int switch_device(char* id, char* label, char* pos){
 
     //check for valid row
     if(strcmp(row, "\0") == 0){
-        return; //row empty id not found
+        return FAILURE; //row empty id not found
     }
 
     //copy row to extract parametres we need

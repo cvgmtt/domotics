@@ -59,7 +59,7 @@ int createProcessHub(int num){
                 for(int i = 0; i <20; i++){
                     if(check_inconsistency(hub.registry.child_switches[i], hub.switches) && hub.registry.child_switches[i] != -1){
                         command = INVALID_COMMAND;
-                        printf("state inconsistency detected, manual override needed \n");
+                        printf("state inconsistency detected in hub, manual override needed \n");
                     }
                 }
 
@@ -229,8 +229,12 @@ int createProcessHub(int num){
                                                 
                         //update the switches array of the registry
                         int value = (strcmp(pos, "on") == 0) ? 1 : 0;
-                        hub.registry.child_switches[atoi(id)-1] = value;
-                        break;
+                        for(int i = 0; i < 20; i++) {
+                            if (hub.registry.child_id[i] == atoi(id)) {
+                                hub.registry.child_switches[i] = value;
+                                break;
+                            }
+                        }
                     case SET_COMMAND:
                         printf("wrong device targeted, you can't set parameters of hub type device \n");
                         break;
