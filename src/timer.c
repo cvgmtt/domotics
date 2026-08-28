@@ -50,8 +50,7 @@ int createProcessTimer(int num){
                 memset(info, 0, sizeof(info));
 
                 //check if the state is inconsistent, if it is print warning and set the command as invalid
-                int child_state
-                if(check_inconsistency(timer->state, timer->registry.child_state) && timer->registry.child_id != -1){
+                if(check_inconsistency(timer.state, timer.registry.child_switch) && timer.registry.child_id != -1){
                     command = INVALID_COMMAND;
                     printf("state inconsistency detected, manual interaction needed \n");
                 }
@@ -177,7 +176,7 @@ int createProcessTimer(int num){
                         //update child
                         if(timer.registry.child_id > 0){
                             snprintf(message, sizeof(message), "switch %s", pos);
-                            send_ipc_message(timer.registry.child_id, message);
+                            send_ipc_message((char*)timer.registry.child_id, message);
                             timer.registry.child_switch = (strcmp(pos, "on") == 0) ? 1 : 0;
                         }
                         break;

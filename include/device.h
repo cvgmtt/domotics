@@ -40,5 +40,7 @@ int setup_device(int id, const char* type_name, int control_pipe[]);
 
 void wait_function();
 
+int check_inconsistency(int child_state, int parent_state);
+
 int send_ipc_message(const char* target_id, const char* message); 
 #endif

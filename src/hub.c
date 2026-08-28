@@ -57,7 +57,7 @@ int createProcessHub(int num){
                 
                 //check if the state is inconsistent, if it is print warning and set the command as invalid
                 for(int i = 0; i <20; i++){
-                    if(check_inconsistency(current_hub->registry.child_switches[i], current_hub->switches) && current_hub->registry.child_switches[i] != -1){
+                    if(check_inconsistency(hub.registry.child_switches[i], hub.switches) && hub.registry.child_switches[i] != -1){
                         command = INVALID_COMMAND;
                         printf("state inconsistency detected, manual override needed \n");
                     }
