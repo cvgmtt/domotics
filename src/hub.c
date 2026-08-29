@@ -60,6 +60,14 @@ int createProcessHub(int num){
                     if(check_inconsistency(hub.registry.child_switches[i], hub.switches) && hub.registry.child_switches[i] != -1){
                         command = INVALID_COMMAND;
                         printf("state inconsistency detected in hub, manual override needed \n");
+                        if(hub.state == 1){
+                            snprintf(message, sizeof(message), "switch on");
+                            hub.registry.child_switches[i] = 1;
+                        } else{
+                            snprintf(message, sizeof(message), "switch off");
+                            hub.registry.child_switches[i] = 0;
+                        }
+                        send_ipc_message(child_id, message);
                     }
                 }
 
@@ -235,6 +243,7 @@ int createProcessHub(int num){
                                 break;
                             }
                         }
+                        break;
                     case SET_COMMAND:
                         printf("wrong device targeted, you can't set parameters of hub type device \n");
                         break;

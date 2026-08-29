@@ -366,7 +366,7 @@ void list(char* list_info){
             FD_ZERO(&read_fds);
             FD_SET(controller_pipe, &read_fds);
             
-            tv.tv_sec = 2; 
+            tv.tv_sec = 8; 
             tv.tv_usec = 0;
             
             int activity = select(controller_pipe + 1, &read_fds, NULL, NULL, &tv);

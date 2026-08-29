@@ -54,7 +54,17 @@ int createProcessTimer(int num){
                 //check if the state is inconsistent, if it is print warning and set the command as invalid
                 if(check_inconsistency(timer.registry.child_state, timer.state) && timer.registry.child_id != -1){
                     command = INVALID_COMMAND;
-                    printf("state inconsistency detected in timer, manual interaction needed \n");
+                    printf("state inconsistency detected in timer, manual override \n");
+                    if(timer.state == 1){
+                        printf("Sent");
+                        snprintf(message, sizeof(message), "switch on");
+                        timer.registry.child_state = 1;
+                    } else{
+                        printf("Sent");
+                        snprintf(message, sizeof(message), "switch off");
+                        timer.registry.child_state = 0;
+                    }
+                    send_ipc_message(child_id, message);
                 }
                 
 
@@ -65,7 +75,6 @@ int createProcessTimer(int num){
                 switch (command)
                 {
                     case CHANGE_PARENT_COMMAND:
-                    //modificare usando funzione send_ipc_message
                         timer.registry.child_id = -1;   
                         timer.registry.child_state = -1;         
                         snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%s", child_id);
