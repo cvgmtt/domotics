@@ -268,21 +268,18 @@ int switch_device(char* id, char* label, char* pos){
     if(strcmp(label, "power") == 0){
         //check if is control device or a bulb
         if(strcmp(type, "Timer") == 0 || strcmp(type, "Hub") == 0){
-            //send the switch command to the control device directly
+            //send the switch command to the control device 
             snprintf(message, sizeof(message), "switch %s", pos);
             send_ipc_message(id, message);
         } else if(strcmp(type, "Bulb") == 0){
-            //send the switch command to the father of the device
-
             if(strcmp(parent_id, "0") == 0){
-                //send message to bulb device itself
+                //send message to bulb device if it doesn't have a parent
                 snprintf(message, sizeof(message), "switch %s", pos);
                 send_ipc_message(id, message);
-            }else if(parent_id != NULL){
-                //send message to parent of bulb device
-                snprintf(message, sizeof(message), "switch_child %s %s", id, pos);
-                send_ipc_message(parent_id, message);
-            } else{
+            } else if(parent_id != NULL){
+                printf("couldn't perform action, device %s is linked to a control device\n", id);
+                return FAILURE;
+            }else{
                 printf("couldn't perform action for id %s, parent not specified\n", id);
                 return FAILURE;
             }
@@ -305,15 +302,13 @@ int switch_device(char* id, char* label, char* pos){
             strcpy(actual_pos, "off");
         }
 
-        //check if parent exists or not, if it does send the command to the parent which then forwards to the child 
         if(strcmp(parent_id, "0") == 0){
-            //send message to device itself
+            //send message to device itself if it doesn't have a parent
             snprintf(message, sizeof(message), "switch %s %s", id, actual_pos);
             send_ipc_message(id, message);
         }else if(parent_id != NULL){
-            //send message to parent of device
-            snprintf(message, sizeof(message), "switch_child %s %s", id, actual_pos);
-            send_ipc_message(parent_id, message);
+            printf("couldn't perform action, device %s is linked to a control device\n", id);
+            return FAILURE;
         }else{
             printf("couldn't perform action for id %s, parent not specified\n", id);
             return FAILURE;

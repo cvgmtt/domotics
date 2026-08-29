@@ -57,6 +57,7 @@ int createProcessTimer(int num){
                 if(check_inconsistency(timer.registry.child_state, timer.state) && timer.registry.child_id != -1){
                     command = INVALID_COMMAND;
                     printf("state inconsistency detected in timer, manual override \n");
+                    //we solve the inconsistency
                     if(timer.state == 1){
                         printf("Sent");
                         snprintf(message, sizeof(message), "switch on");
@@ -184,7 +185,7 @@ int createProcessTimer(int num){
                             timer.switches = 0;
                             timer.state = 0;
                             strftime(timer.registry.end_time, sizeof(timer.registry.end_time), "%H:%M", localtime(&current_time));
-                            printf("switched Timer%s\n", pos);
+                            printf("switched Timer %s\n", pos);
                         }
 
                         //update child if it exists
@@ -197,14 +198,6 @@ int createProcessTimer(int num){
                             timer.registry.child_state = value;
                         }
                         break;
-                    case SWITCH_CHILD_COMMAND:
-                        //send the switch command to the child device
-                        snprintf(message, sizeof(message), "switch %s", pos);
-                        send_ipc_message(id, message);
-                        //update the state of the child in the registry
-                        int value = (strcmp(pos, "on") == 0) ? 1 : 0;
-                        timer.registry.child_state = value;
-                        break;
                     case SET_COMMAND:
                         memcpy(buf_copy, buf, MSG_SIZE);
                         strtok(buf_copy, " ");
@@ -212,13 +205,8 @@ int createProcessTimer(int num){
                         char* value1 = strtok(NULL, " ");
                         char* value2 = strtok(NULL, " ");
                         if(strcmp(attribute, "timer") == 0){
-                            if(atoi(value1) < atoi(value2)){
-                                snprintf(timer.registry.begin_time, sizeof(timer.registry.begin_time), "%s", value1);
-                                snprintf(timer.registry.end_time, sizeof(timer.registry.end_time), "%s", value2);
-                            } else{
-                                printf("invalid begin and end time given \n");
-                            }
-                            
+                            snprintf(timer.registry.begin_time, sizeof(timer.registry.begin_time), "%s", value1);
+                            snprintf(timer.registry.end_time, sizeof(timer.registry.end_time), "%s", value2);
                         } else{
                             printf("invalid attribute \n");
                         }

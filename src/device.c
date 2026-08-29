@@ -218,17 +218,6 @@ int getCommand(char* buf, char* id, char* pos, char* child_id){
             //return the position to switch to
             strcpy(pos, pos_temp);
             return SWITCH_COMMAND;
-        } else if(strcmp(token, "switch_child") == 0){
-            char* id_tmp = strtok(NULL, " ");
-            char* pos_temp = strtok(NULL, " ");
-            char* extra = strtok(NULL, " ");
-            if(extra != NULL){
-                printf("invalid command");
-                return INVALID_COMMAND;
-            }
-            strcpy(id, id_tmp);
-            strcpy(pos, pos_temp);
-            return SWITCH_CHILD_COMMAND;
         } else if(strcmp(token, "self_info") == 0){
             char* next = strtok(NULL, " ");
             if(next != NULL){

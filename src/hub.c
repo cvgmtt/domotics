@@ -42,7 +42,6 @@ int createProcessHub(int num){
         char pos[10];
         char child_id[10];
         char pipename_child[20];
-        char pipename_parent[20];
         char message[50];
 
         while(1){
@@ -216,10 +215,12 @@ int createProcessHub(int num){
                             hub.state = 0;
                         }
                         //updating all children
+                        char child_id_str[10];
                         for(int i = 0; i<20; i++){
                             if(hub.registry.child_switches[i] != -1){
+                                snprintf(child_id_str, sizeof(child_id_str), "%d", hub.registry.child_id[i]);
                                 snprintf(message, sizeof(message), "switch %s", pos);
-                                send_ipc_message( hub.registry.child_id[i], message); 
+                                send_ipc_message( child_id_str, message); 
                                 
                                 //update the switches array of the registry
                                 if(strcmp(pos, "on") == 0){
@@ -227,20 +228,6 @@ int createProcessHub(int num){
                                 } else if(strcmp(pos, "off") == 0){
                                     hub.registry.child_switches[i] = 0;
                                 }
-                            }
-                        }
-                        break;
-                    case SWITCH_CHILD_COMMAND:
-                        //send the switch command to the child
-                        snprintf(message, sizeof(message), "switch %s", pos);
-                        send_ipc_message(id, message);                    
-                                                
-                        //update the switches array of the registry
-                        int value = (strcmp(pos, "on") == 0) ? 1 : 0;
-                        for(int i = 0; i < 20; i++) {
-                            if (hub.registry.child_id[i] == atoi(id)) {
-                                hub.registry.child_switches[i] = value;
-                                break;
                             }
                         }
                         break;
