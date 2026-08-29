@@ -211,8 +211,8 @@ int createProcessTimer(int num){
                         char* value2 = strtok(NULL, " ");
                         if(strcmp(attribute, "timer") == 0){
                             if(atoi(value1) < atoi(value2)){
-                                timer.registry.begin_time =  atoi(value1);
-                                timer.registry.end_time = atoi(value2);
+                                timer.registry.begin_time =  (time_t)atoi(value1);
+                                timer.registry.end_time = (time_t)atoi(value2);
                             } else{
                                 printf("invalid begin and end time given \n");
                             }
@@ -251,12 +251,16 @@ void timer_info_command(timer* current_timer, char* info, size_t size){
 
 //gets the info of the registry of the timer and returns it as a string
 void timer_registry_info(timer* current_timer,  char* info, size_t size){
+    char begin_tmp[20];
+    char end_tmp[20];
+    ctime_r(&current_timer->registry.begin_time, begin_tmp);
+    ctime_r(&current_timer->registry.end_time, end_tmp);
     snprintf(info, size,
         "Id=%d, Parent id: %d, Child id: %d, begin_time: %d, end_time: %d",
         current_timer->registry.id,
         current_timer->registry.parent_id,
         current_timer->registry.child_id,
-        (int) current_timer->registry.begin_time,
-        (int) current_timer->registry.end_time
+        begin_tmp,
+        end_tmp
     );
 }
