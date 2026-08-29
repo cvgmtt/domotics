@@ -8,7 +8,7 @@ hub createHub(){
     hub.registry.parent_id = 0;
     for(int i = 0; i < 20; i++){
         hub.registry.child_id[i] = -1;
-        hub.registry.child_switches[i] = -1;
+        hub.registry.child_states[i] = -1;
     }
     return hub;
 }
@@ -56,15 +56,15 @@ int createProcessHub(int num){
                 
                 //check if the state is inconsistent, if it is print warning and set the command as invalid
                 for(int i = 0; i <20; i++){
-                    if(check_inconsistency(hub.registry.child_switches[i], hub.switches) && hub.registry.child_switches[i] != -1){
+                    if(check_inconsistency(hub.registry.child_states[i], hub.switches) && hub.registry.child_states[i] != -1){
                         command = INVALID_COMMAND;
                         printf("state inconsistency detected in hub, manual override needed \n");
                         if(hub.state == 1){
                             snprintf(message, sizeof(message), "switch on");
-                            hub.registry.child_switches[i] = 1;
+                            hub.registry.child_states[i] = 1;
                         } else{
                             snprintf(message, sizeof(message), "switch off");
-                            hub.registry.child_switches[i] = 0;
+                            hub.registry.child_states[i] = 0;
                         }
                         send_ipc_message(child_id, message);
                     }
@@ -81,7 +81,7 @@ int createProcessHub(int num){
                         for(int i = 0; i < 20; i++){
                             if(hub.registry.child_id[i] == atoi(child_id)){
                                 hub.registry.child_id[i] = -1;
-                                hub.registry.child_switches[i] = -1;
+                                hub.registry.child_states[i] = -1;
                                 hub.registry.child_num--;
                                 snprintf(pipename_child, sizeof(pipename_child), "/tmp/domotics_%s", child_id);
                                 int child_pipe = open(pipename_child, O_WRONLY | O_NONBLOCK);
@@ -99,7 +99,7 @@ int createProcessHub(int num){
                         for(int i = 0; i < 20; i++){
                             if(hub.registry.child_id[i] == -1){
                                 hub.registry.child_id[i] = atoi(child_id);
-                                hub.registry.child_switches[i] = hub.switches;
+                                hub.registry.child_states[i] = hub.switches;
                                 hub.registry.child_num++;
                                 break;
                             }
@@ -148,7 +148,7 @@ int createProcessHub(int num){
                                 }
                                 
                                 hub.registry.child_id[i] = -1;
-                                hub.registry.child_switches[i] = -1;
+                                hub.registry.child_states[i] = -1;
                                 hub.registry.child_num--;
                             }
                         }
@@ -188,7 +188,7 @@ int createProcessHub(int num){
                         for(int i = 0; i < 20; i++){
                             if(hub.registry.child_id[i] == atoi(child_id)){
                                 hub.registry.child_id[i] = -1;
-                                hub.registry.child_switches[i] = -1;
+                                hub.registry.child_states[i] = -1;
                                 hub.registry.child_num--;
                                 break;
                             }
@@ -217,16 +217,16 @@ int createProcessHub(int num){
                         //updating all children
                         char child_id_str[10];
                         for(int i = 0; i<20; i++){
-                            if(hub.registry.child_switches[i] != -1){
+                            if(hub.registry.child_states[i] != -1){
                                 snprintf(child_id_str, sizeof(child_id_str), "%d", hub.registry.child_id[i]);
                                 snprintf(message, sizeof(message), "switch %s", pos);
                                 send_ipc_message( child_id_str, message); 
                                 
                                 //update the switches array of the registry
                                 if(strcmp(pos, "on") == 0){
-                                    hub.registry.child_switches[i] = 1;
+                                    hub.registry.child_states[i] = 1;
                                 } else if(strcmp(pos, "off") == 0){
-                                    hub.registry.child_switches[i] = 0;
+                                    hub.registry.child_states[i] = 0;
                                 }
                             }
                         }

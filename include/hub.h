@@ -5,7 +5,7 @@
 
 typedef struct registry_hub{
     int id;
-    int child_switches[20]; 
+    int child_states[20]; 
     int parent_id;
     int child_num;
     int child_id[20];
