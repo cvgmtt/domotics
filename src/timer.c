@@ -1,11 +1,12 @@
 #include "timer.h"
+#include <time.h>
 
 timer createTimer(){
     timer timer;
     timer.state = 0;
     timer.switches = 0;
-    timer.registry.begin_time = 0;
-    timer.registry.end_time = 0;
+    strcpy(timer.registry.begin_time, "00:00");
+    strcpy(timer.registry.end_time, "00:00");
     timer.registry.parent_id = 0;
     timer.registry.child_id = -1;
     timer.registry.child_state = -1;
@@ -37,13 +38,14 @@ int createProcessTimer(int num){
         char pipename_child[30];
         int child_pipe;
         char message[50];
+        time_t current_time;
 
         while(1){
             memset(buf, 0, sizeof(buf));
             int bytes_read = read(pipe, buf, sizeof(buf));
             char buf_copy[MSG_SIZE];
             memcpy(buf_copy, buf, MSG_SIZE);
-            //timer.registry.child_state = ; 
+            current_time = time(NULL);
 
             if(bytes_read > 0){
                 command = getCommand(buf_copy, id, pos, child_id);
@@ -175,13 +177,13 @@ int createProcessTimer(int num){
                         if (strcmp(pos, "on") == 0){
                             timer.switches = 1;
                             timer.state = 1;
-                            timer.registry.begin_time = time(NULL);
-                            timer.registry.end_time = 0;
+                            strftime(timer.registry.begin_time, sizeof(timer.registry.begin_time), "%H:%M", localtime(&current_time));
+                            strcpy(timer.registry.end_time, "00:00");
                             printf("switched Timer %s\n", pos);
                         } else if (strcmp(pos, "off") == 0){
                             timer.switches = 0;
                             timer.state = 0;
-                            timer.registry.end_time = time(NULL);
+                            strftime(timer.registry.end_time, sizeof(timer.registry.end_time), "%H:%M", localtime(&current_time));
                             printf("switched Timer%s\n", pos);
                         }
 
@@ -211,8 +213,8 @@ int createProcessTimer(int num){
                         char* value2 = strtok(NULL, " ");
                         if(strcmp(attribute, "timer") == 0){
                             if(atoi(value1) < atoi(value2)){
-                                timer.registry.begin_time =  (time_t)atoi(value1);
-                                timer.registry.end_time = (time_t)atoi(value2);
+                                snprintf(timer.registry.begin_time, sizeof(timer.registry.begin_time), "%s", value1);
+                                snprintf(timer.registry.end_time, sizeof(timer.registry.end_time), "%s", value2);
                             } else{
                                 printf("invalid begin and end time given \n");
                             }
@@ -250,17 +252,14 @@ void timer_info_command(timer* current_timer, char* info, size_t size){
 }
 
 //gets the info of the registry of the timer and returns it as a string
-void timer_registry_info(timer* current_timer,  char* info, size_t size){
-    char begin_tmp[20];
-    char end_tmp[20];
-    ctime_r(&current_timer->registry.begin_time, begin_tmp);
-    ctime_r(&current_timer->registry.end_time, end_tmp);
+void timer_registry_info(timer* current_timer, char* info, size_t size){
     snprintf(info, size,
-        "Id=%d, Parent id: %d, Child id: %d, begin_time: %d, end_time: %d",
+        "Id=%d, Parent id: %d, Child id: %d, begin_time: %s, end_time: %s",
         current_timer->registry.id,
         current_timer->registry.parent_id,
         current_timer->registry.child_id,
-        begin_tmp,
-        end_tmp
+        current_timer->registry.begin_time,
+        current_timer->registry.end_time
     );
 }
+

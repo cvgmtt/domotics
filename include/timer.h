@@ -4,8 +4,8 @@
 #include "device.h"
 
 typedef struct registry_timer{
-    time_t begin_time;
-    time_t end_time;
+    char begin_time[26];
+    char end_time[26];
     int id;
     int parent_id;
     int child_id;
